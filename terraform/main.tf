@@ -12,7 +12,7 @@ provider "google-beta" {
 
 locals {
   # Determine if we are creating a new network or using an existing one
-  create_network = var.network_name == ""
+  create_network = var.create_vpc
 
   # Resolve the Network ID (Self Link)
   # If creating: google_compute_network.vpc_network[0].id
@@ -21,7 +21,7 @@ locals {
   
 
   # Resolve Network Name for compute instances
-  network_name = local.create_network ? google_compute_network.vpc_network[0].name : var.network_name
+  network_name = var.network_name
   
   # Determine Project ID for Networking Resources (Host Project if Shared VPC, else Service Project)
   network_project_id = var.network_project_id != "" ? var.network_project_id : var.project_id
@@ -32,7 +32,7 @@ locals {
 # 1a. Create new VPC if none provided
 resource "google_compute_network" "vpc_network" {
   count = local.create_network ? 1 : 0
-  name  = "sap-data-gen-vpc"
+  name  = var.network_name
   auto_create_subnetworks = true
 }
 

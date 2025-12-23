@@ -29,7 +29,8 @@ Table Summary for GenerationSAP TablePurposeGeneration KeySource DetailKNA1Custo
 | `region` | Region for resources | `string` | `us-central1` |
 | `zone` | Zone for VMs | `string` | `us-central1-a` |
 | `db_password` | Password for DB users | `string` | n/a |
-| `network_name` | Existing VPC Name (optional) | `string` | `""` (Creating new) |
+| `network_name` | Name of VPC to use/create | `string` | `"sap-data-gen-vpc"` |
+| `create_vpc` | Create a new VPC? (Default: reuse) | `bool` | `false` |
 | `network_project_id` | Project ID for Shared VPC | `string` | `var.project_id` |
 | `create_hana_vm` | Create SAP HANA VM | `bool` | `false` |
 | `create_psa` | Create Private Service Access | `bool` | `true` |

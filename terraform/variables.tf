@@ -21,10 +21,16 @@ variable "db_password" {
   sensitive   = true
 }
 
+variable "create_vpc" {
+  description = "Whether to create a new VPC. If false, attempts to use existing VPC named var.network_name."
+  type        = bool
+  default     = false
+}
+
 variable "network_name" {
-  description = "Name of the existing/shared VPC to use. If empty, a new VPC will be created."
+  description = "Name of the VPC to create or use."
   type        = string
-  default     = ""
+  default     = "sap-data-gen-vpc"
 }
 
 variable "network_project_id" {
