@@ -20,3 +20,15 @@ variable "db_password" {
   type        = string
   sensitive   = true
 }
+
+variable "network_name" {
+  description = "Name of the existing/shared VPC to use. If empty, a new VPC will be created."
+  type        = string
+  default     = ""
+}
+
+variable "network_project_id" {
+  description = "Project ID where the existing/shared VPC resides. Defaults to var.project_id if using existing network."
+  type        = string
+  default     = ""
+}

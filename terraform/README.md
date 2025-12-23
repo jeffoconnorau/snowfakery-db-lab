@@ -20,3 +20,27 @@ Relational Integrity: Snowfakery refers between tables with IDs automatically. B
 
 Table Summary for GenerationSAP TablePurposeGeneration KeySource DetailKNA1Customer Masterfake.CompanyStandard SAP Customer data6.VBAKSales Headerdate_betweenRelates orders to a specific timeframe7.BKPFAccounting Headerunique_idPrimary key for financial documents8.BSEGAccounting Segmentparent.BELNRLinks financial lines to the header9.
 
+
+## Inputs
+
+| Name | Description | Type | Default |
+|------|-------------|------|---------|
+| `project_id` | Google Cloud Project ID | `string` | n/a |
+| `region` | Region for resources | `string` | `us-central1` |
+| `zone` | Zone for VMs | `string` | `us-central1-a` |
+| `db_password` | Password for DB users | `string` | n/a |
+| `network_name` | Existing VPC Name (optional) | `string` | `""` (Creating new) |
+| `network_project_id` | Project ID for Shared VPC | `string` | `var.project_id` |
+
+## Usage
+```bash
+# Standard usage (creating new VPC)
+terraform apply -var="project_id=my-project" -var="db_password=secret"
+
+# Shared VPC usage
+terraform apply \
+  -var="project_id=my-project" \
+  -var="network_name=my-shared-vpc" \
+  -var="network_project_id=host-project-id" \
+  -var="db_password=secret"
+```
