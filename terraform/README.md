@@ -31,6 +31,7 @@ Table Summary for GenerationSAP TablePurposeGeneration KeySource DetailKNA1Custo
 | `db_password` | Password for DB users | `string` | n/a |
 | `network_name` | Existing VPC Name (optional) | `string` | `""` (Creating new) |
 | `network_project_id` | Project ID for Shared VPC | `string` | `var.project_id` |
+| `create_hana_vm` | Create SAP HANA VM | `bool` | `false` |
 
 ## Usage
 ```bash

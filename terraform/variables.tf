@@ -32,3 +32,9 @@ variable "network_project_id" {
   type        = string
   default     = ""
 }
+
+variable "create_hana_vm" {
+  description = "Whether to create the SAP HANA VM and associated disks"
+  type        = bool
+  default     = false
+}

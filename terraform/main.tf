@@ -145,9 +145,43 @@ resource "google_sql_database_instance" "mssql" {
 
 # 6. SAP HANA VM (Placeholder)
 # ----------------------------
+resource "google_compute_disk" "hana_backup" {
+  count = var.create_hana_vm ? 1 : 0
+  name  = "hana-backup"
+  type  = "pd-balanced"
+  size  = 25
+  zone  = var.zone
+}
+
+resource "google_compute_disk" "hana_data" {
+  count = var.create_hana_vm ? 1 : 0
+  name  = "hana-data"
+  type  = "pd-standard"
+  size  = 50
+  zone  = var.zone
+}
+
+resource "google_compute_disk" "hana_log" {
+  count = var.create_hana_vm ? 1 : 0
+  name  = "hana-log"
+  type  = "pd-standard"
+  size  = 50
+  zone  = var.zone
+}
+
+resource "google_compute_disk" "hana_shared" {
+  count = var.create_hana_vm ? 1 : 0
+  name  = "hana-shared"
+  type  = "pd-balanced"
+  size  = 80
+  zone  = var.zone
+}
+
 resource "google_compute_instance" "hana_vm" {
+  count        = var.create_hana_vm ? 1 : 0
   name         = "hana-express-vm"
-  machine_type = "e2-highmem-4"
+  # SAP HANA requires decent resources, e2-highmem-4 is minimum viable for testing
+  machine_type = "e2-highmem-4" 
   zone         = var.zone
 
   boot_disk {
@@ -157,12 +191,29 @@ resource "google_compute_instance" "hana_vm" {
     }
   }
 
+  attached_disk {
+    source      = google_compute_disk.hana_backup[0].id
+    device_name = "hana-backup"
+  }
+
+  attached_disk {
+    source      = google_compute_disk.hana_data[0].id
+    device_name = "hana-data"
+  }
+
+  attached_disk {
+    source      = google_compute_disk.hana_log[0].id
+    device_name = "hana-log"
+  }
+
+  attached_disk {
+    source      = google_compute_disk.hana_shared[0].id
+    device_name = "hana-shared"
+  }
+
   network_interface {
     network = local.network_name
-    # Use subnetwork if it's a shared VPC! 
-    # For Shared VPC, specifying just the network often works if auto-subnets, 
-    # but strictly we should probably ask for a subne.
-    # For now, simplistic approach:
+    # Consider subnetwork if using Shared VPC in future
   }
 
   metadata_startup_script = "echo 'Please install SAP HANA Express here'"
