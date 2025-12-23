@@ -93,7 +93,8 @@ resource "google_sql_database_instance" "postgres" {
   depends_on = [google_service_networking_connection.private_vpc_connection]
 
   settings {
-    tier = "db-custom-2-7680"
+    tier              = "db-f1-micro" # Smallest available (Shared Core)
+    availability_type = "ZONAL"       # No HA
     ip_configuration {
       ipv4_enabled    = false
       private_network = local.network_id
@@ -113,7 +114,8 @@ resource "google_sql_database_instance" "mysql" {
   depends_on = [google_service_networking_connection.private_vpc_connection]
 
   settings {
-    tier = "db-custom-2-7680"
+    tier              = "db-custom-1-3840" # Smallest viable for MySQL 8 (1 vCPU)
+    availability_type = "ZONAL"            # No HA
     ip_configuration {
       ipv4_enabled    = false
       private_network = local.network_id
@@ -133,7 +135,8 @@ resource "google_sql_database_instance" "mssql" {
   depends_on = [google_service_networking_connection.private_vpc_connection]
 
   settings {
-    tier = "db-custom-2-7680"
+    tier              = "db-custom-2-7680" # Minimum requirement for SQL Server
+    availability_type = "ZONAL"            # No HA
     ip_configuration {
       ipv4_enabled    = false
       private_network = local.network_id
