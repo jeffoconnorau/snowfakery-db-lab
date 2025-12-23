@@ -38,3 +38,9 @@ variable "create_hana_vm" {
   type        = bool
   default     = false
 }
+
+variable "create_psa" {
+  description = "Whether to create the Private Service Access (IP Range & Peering). Set to false if already configured in Host Project."
+  type        = bool
+  default     = true
+}

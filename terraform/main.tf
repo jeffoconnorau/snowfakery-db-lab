@@ -19,8 +19,12 @@ locals {
   # If existing: data.google_compute_network.existing_vpc[0].id
   network_id = local.create_network ? google_compute_network.vpc_network[0].id : data.google_compute_network.existing_vpc[0].id
   
+
   # Resolve Network Name for compute instances
   network_name = local.create_network ? google_compute_network.vpc_network[0].name : var.network_name
+  
+  # Determine Project ID for Networking Resources (Host Project if Shared VPC, else Service Project)
+  network_project_id = var.network_project_id != "" ? var.network_project_id : var.project_id
 }
 
 # 1. Network Setup
@@ -36,12 +40,16 @@ resource "google_compute_network" "vpc_network" {
 data "google_compute_network" "existing_vpc" {
   count   = local.create_network ? 0 : 1
   name    = var.network_name
-  project = var.network_project_id != "" ? var.network_project_id : var.project_id
+  project = local.network_project_id
 }
 
 # 1c. Private Service Access (Private IP for Cloud SQL / AlloyDB)
+# Note: This must be created in the PROJECT where the Network exists.
+# If using Shared VPC, this requires permissions in the Host Project.
 resource "google_compute_global_address" "private_ip_address" {
+  count         = var.create_psa ? 1 : 0
   name          = "sap-lab-private-ip"
+  project       = local.network_project_id
   purpose       = "VPC_PEERING"
   address_type  = "INTERNAL"
   prefix_length = 16
@@ -49,9 +57,10 @@ resource "google_compute_global_address" "private_ip_address" {
 }
 
 resource "google_service_networking_connection" "private_vpc_connection" {
+  count                   = var.create_psa ? 1 : 0
   network                 = local.network_id
   service                 = "servicenetworking.googleapis.com"
-  reserved_peering_ranges = [google_compute_global_address.private_ip_address.name]
+  reserved_peering_ranges = [google_compute_global_address.private_ip_address[0].name]
 }
 
 # 2. AlloyDB Infrastructure
