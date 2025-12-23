@@ -33,7 +33,7 @@ Table Summary for GenerationSAP TablePurposeGeneration KeySource DetailKNA1Custo
 | `create_vpc` | Create a new VPC? (Default: reuse) | `bool` | `false` |
 | `network_project_id` | Project ID for Shared VPC | `string` | `var.project_id` |
 | `create_hana_vm` | Create SAP HANA VM | `bool` | `false` |
-| `create_psa` | Create Private Service Access | `bool` | `true` |
+| `create_psa` | Create Private Service Access | `bool` | `false` |
 
 ## Usage
 ```bash
