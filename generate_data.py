@@ -80,7 +80,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run Snowfakery generation for specific databases.")
     parser.add_argument("--targets", "-t", nargs="+", help="List of databases to target (e.g. POSTGRES MYSQL)")
     parser.add_argument("--iterations", "-i", type=int, default=int(os.getenv("ITERATIONS", "1")), help="Number of iterations per database")
-    parser.add_argument("--recipe", "-r", default="sap_complete.recipe.yml", help="Path to recipe file")
+    parser.add_argument("--recipe", "-r", default="complete_data.recipe.yml", help="Path to recipe file")
     
     args = parser.parse_args()
     
