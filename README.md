@@ -1,16 +1,32 @@
+# Snowfakery DB Lab
 
-## Getting Started
+This project generates synthetic enterprise data (SAP schema flavor) and populates multiple database targets: PostgreSQL, AlloyDB, MySQL, MSSQL, and SAP HANA. It leverages **Snowfakery** for data generation and **Terraform** for infrastructure provisioning.
 
-### Prerequisites
-- Python 3.8+
-- [Terraform](https://www.terraform.io/downloads.html)
-- Docker (optional, for local DB testing)
-- **macOS Users**: `brew install unixodbc` (required for MSSQL driver)
+## Prerequisites
+- **Python 3.8+**
+- **Terraform** (for infrastructure)
+- **Docker** (optional, for local DB testing)
+- **ODBC Driver** (for MSSQL on macOS): `brew install unixodbc`
 
-### Installation
+## 1. Infrastructure Setup (Terraform)
+If you need to provision the database infrastructure on Google Cloud (AlloyDB, Cloud SQL), navigate to the `terraform/` directory.
 
-1. **Clone or navigate to the project directory:**
+```bash
+cd terraform
+# Initialize Terraform
+terraform init
+
+# Plan and Apply
+terraform plan
+terraform apply
+```
+*Note: This will output connection details (IPs, connection strings) required for the data generation step.*
+
+## 2. Local Development Setup
+
+1. **Clone the repository:**
    ```bash
+   git clone <repo-url>
    cd snowfakery-db-lab
    ```
 
@@ -20,195 +36,62 @@
    source venv/bin/activate
    ```
 
-3. **Install dependencies:**
+3. **Install Python dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
 
-### Quick Start
-To generate data across all configured databases:
+4. **Prepare Database Schemas:**
+   - For **SAP HANA**, run the DDL scripts located in `sap_hana/ddl.sql` using your HANA Cockpit or HDBSQL.
+   - For other databases, Snowfakery can typically auto-create tables, but ensuring schemas match your requirements is recommended.
+
+## 3. Data Generation
+
+The primary script is `generate_data.py`. It generates data based on the recipe (default: `complete_data.recipe.yml`) and inserts it into the targeted databases.
+
+### Basic Usage
 ```bash
-python setup.py
-```
-*Note: Ensure your databases are running and accessible via the connection strings defined in `setup.py`.*
-
-
-
-
-### Advanced Usage (CLI Arguments)
-You can now target specific databases using command-line arguments:
-
-```bash
-# Run only for PostgreSQL and MySQL
-python generate_data.py --targets POSTGRES MYSQL
-
-# Run with custom iterations
-python generate_data.py --targets HANA --iterations 5
-
-# Show help
-python generate_data.py --help
-```
-
-Supported targets: `POSTGRES`, `ALLOYDB`, `MYSQL`, `MSSQL`, `HANA`.
-
-### Advanced Usage (Environment Variables)
-For more robust execution using environment variables (ideal for CI/CD or Docker):
-```bash
-# Configure supported databases via environment variables
-export ENABLED_DBS="POSTGRES,MYSQL"
+# Generate data for all configured targets (default)
 python generate_data.py
 ```
 
-## Data Generation
-This recipe reproduces the structure of your provided CSV files (Customers, Orders, Products, etc.) and uses formulas to ensure relational integrity.
+### Advanced Usage (CLI)
+Target specific databases or change iteration counts:
+```bash
+# Only target PostgreSQL and MySQL
+python generate_data.py --targets POSTGRES MYSQL
 
-Since Snowfakery uses SQLAlchemy, you can use the `generate_data.py` script to output the data to all five of your required database types.
+# Run 5 iterations for HANA
+python generate_data.py --targets HANA --iterations 5
 
-Note: The `requirements.txt` file includes the necessary database drivers (psycopg2, pymysql, pyodbc, hdbcli).
-
-Implementation Details
-
-Scaling: To make the dataset "as large as possible," simply increase the count on the Customer object in the YAML file.
-
-
-AlloyDB: Since AlloyDB is fully PostgreSQL-compatible, you can use the standard PostgreSQL SQLAlchemy dialect.
-
-
-Relational Integrity: By nesting Order inside Customer (using the friends or child object pattern), Snowfakery automatically handles the foreign key relationships using its internal ID generation.
-+1
-
-
-Data Types: The recipe uses random_number and date_between to ensure the data is formatted correctly for standard SQL INT, DECIMAL, and DATE columns.
-
-To refine your Snowfakery recipe for SAP HANA and enterprise environments, we need to shift from generic naming conventions to standard SAP table structures (like KNA1 for Customers and VBAK/VBAP for Sales) and use specific SAP-style data formats.
-+2
-
-Refined SAP-Style Snowfakery Recipe (erp_data.recipe.yml)
-This recipe uses Snowfakery's object templates to simulate a standard SAP schema with related header and item tables.
-
-#SAP
-
-Data Generation Strategy for Enterprise Scale
-To generate "as large as possible" datasets across your five target databases (MySQL, MS SQL, SAP HANA, AlloyDB, PostgreSQL), follow these steps:
-
-1. Optimization for Massive Datasets
-When generating millions of rows, do not run one massive execution. Instead, use the --plugin and count features to iterate.
-+1
-
-
-Batching: Use Snowfakery's count at the top level to generate data in blocks of 10,000 to avoid memory overflow.
-+1
-
-
-Targeted Scaling: Increase the count in the KNA1 (Customer) object to scale the entire relational tree.
-+1
-
-2. SQL Schema Preparation
-Before running the script, ensure your target databases have the tables ready with SAP-specific lengths (e.g., MATNR as VARCHAR(18) or KUNNR as VARCHAR(10)). AlloyDB and PostgreSQL can share the same schema.
-+1
-
-Execution Script (Refined for Performance)
-
+# Use a specific recipe
+python generate_data.py --recipe erp_data.recipe.yml
 ```
-import subprocess
 
-# Define your connections [cite: 10]
-db_targets = {
-    "PostgreSQL": "postgresql://user:pass@localhost/postgres",
-    "AlloyDB": "postgresql://user:pass@alloydb-ip/postgres",
-    "MySQL": "mysql+pymysql://user:pass@localhost/sap_db",
-    "MSSQL": "mssql+pyodbc://user:pass@localhost/sap_db?driver=ODBC+Driver+17+for+SQL+Server",
-    "SAPHANA": "hana://user:pass@hana-host:30015"
-}
+### Configuration (Environment Variables)
+You can configure database connection strings via environment variables. This is useful for CI/CD or connecting to the Terraform-provisioned infrastructure.
 
-def run_large_gen(iterations=10):
-    for name, url in db_targets.items():
-        print(f"--- Starting {name} Generation ---")
-        for i in range(iterations):
-            # Running multiple iterations to build a massive dataset [cite: 2295, 2296]
-            subprocess.run([
-                "snowfakery", 
-                "erp_data.recipe.yml", 
-                "--dburl", url
-            ])
-            print(f"Batch {i+1}/{iterations} complete for {name}")
+```bash
+export POSTGRES_HOST="10.x.x.x"
+export POSTGRES_PASSWORD="secure_password"
+# See generate_data.py for all available environment variables (MySQL, MSSQL, HANA, etc.)
 
-run_large_gen(iterations=50) # Adjust iterations for total size
+python generate_data.py
+```
 
-Key Field Adjustments
+## 4. Validation
 
-Unique IDs: Used unique_id to ensure primary keys like VBELN (Sales Order Number) do not collide across batches.
-+1
+After generation, you can validate the data integrity (e.g., Foreign Key relationships between orders and customers) using `validate_data.py`.
 
+```bash
+python validate_data.py
+```
+This script performs cross-database row count comparisons and referential integrity checks (e.g., ensuring every `VBAK` order has a valid `KNA1` customer).
 
-Categorical Data: Used random_choice to mimic SAP's internal codes (e.g., MTART for material types like Finished Goods/FERT).
-+1
-
-
-Formula Logic: You can use formulas to calculate NETWR (Total Value) as a sum of item prices if needed for higher data quality
-
-#classic-complete_recipe
-
-Implementation for Large Datasets
-To ensure your five databases (MySQL, MS SQL, SAP HANA, AlloyDB, and PostgreSQL) handle this load efficiently, consider the following technical adjustments:
-
-
-Fiscal Year Logic: The GJAHR field can be calculated using a formula like ${{now.strftime('%Y')}} to ensure it always reflects the current year.
-+1
-
-
-Company Code Consistency: In enterprise SAP landscapes, BUKRS (Company Code) and VKORG (Sales Org) are usually fixed within a specific business unit; keeping them static (e.g., "1000") helps with testing cross-module reporting.
-
-
-Relational Hierarchies: By using the friends keyword, Snowfakery maintains the parent-child relationship, ensuring that for every Sales Order (VBAK), there is a corresponding Accounting Header (BKPF) and multiple segments (BSEG).
-+1
-
-
-Scale: Increasing the count for KNA1 to 100,000 or more will automatically scale the related Sales and Financial records, potentially creating millions of rows in the BSEG table.
-
-#SAP DDL Scripts
-
-These are tailored for enterprise standards, ensuring that the fields match the data generated by the Snowfakery recipe provided earlier.
-
-SAP HANA DDL Scripts
-You should run these commands from `sap_hana/ddl.sql` in your SAP HANA Cockpit or HDBSQL interface before executing the data generation script.
-
-Data Generation Configuration Notes
-
-Object Templates: Snowfakery uses the keyword object to define instructions for creating rows in these tables.
-
-
-Unique Identifiers: The unique_id function is utilized for primary keys like VBELN and BELNR to distinguish every record from others.
-
-
-Field Formulas: You can combine fake data with other logic using the formula syntax ${{ ... }}.
-+1
-
-
-Date Ranges: The date_between function is used for ERDAT fields to pick a random date within a specified range, such as between a fixed date and today.
-+1
-
-
-Randomized Choices: To simulate SAP-specific codes like Posting Keys (BSCHL), the random_choice function randomly selects an option from a predefined list.
-
-Summary of Infrastructure
-This setup allows you to test:
-
-High-Volume Ingestion: Generating millions of rows for BSEG to test HANA’s column store performance.
-
-Referential Integrity: Ensuring that accounting documents correctly reference sales documents across disparate systems.
-
-Cross-Cloud Architecture: Using Terraform to manage your AlloyDB and PostgreSQL instances while injecting simulated SAP data into all targets simultaneously.
-
-
-#Validation
-Data Validation Script (validate_data.py)
-This script performs two critical checks:
-
-Referential Integrity: Ensures every Sales Order (VBAK) has a valid Customer (KNA1) and every Accounting Segment (BSEG) has a valid Header (BKPF).
-
-Cross-Database Consistency: Compares row counts across your five instances.
-
-Validation Principles for SnowfakeryBased on the Snowfakery documentation, the following concepts are critical for ensuring your validation script passes:Relational LogicObject Templates: Snowfakery creates rows in a database or CSV file based on an "object template"1111.+1Unique IDs: Every row generated is assigned a unique id2. Snowfakery uses these IDs to refer between tables, ensuring relational links are maintained3.+1Formula References: You can reference parent values in child objects (e.g., using parent.BELNR) to ensure a child row correctly links to its ancestor4.Data Integrity FeaturesConditional Values: The if and when functions allow you to make field values conditional, which helps simulate complex SAP business logic (like only creating a Financial Document if a Sales Order is in a certain state)5.Unique Constraints: For fields like Employee Numbers or SAP Document Numbers, the unique_id function ensures no duplicates are created during a single execution6.Null Handling: The NULL value can be used to represent missing data, and you can test for its presence using formulas like ${{ EndDate != 'None' }}7777.+1Comparison of Generation Functions used in SAP ScenariosFunctionPurposeExample Usagerandom_choiceSelecting specific SAP codes 8AUART: ${{random_choice("OR", "RE")}} 9random_numberGenerating quantities or prices 10NETWR: ${{random_number(min=10, max=100)}} 11date_betweenSimulating posting or creation dates 12ERDAT: ${{date_between(start_date='-1y', end_date='today')}} 13fake.CompanyGenerating customer names 14NAME1: ${{fake.Company}} 15
-
-
+## Project Structure
+- `data/`: Contains reference CSV files.
+- `sap_hana/`: Contains SAP HANA specific DDL scripts.
+- `terraform/`: Infrastructure as Code for Google Cloud databases.
+- `complete_data.recipe.yml`: Main Snowfakery recipe with SAP schema.
+- `generate_data.py`: Main execution script.
+- `validate_data.py`: Data integrity validation script.
