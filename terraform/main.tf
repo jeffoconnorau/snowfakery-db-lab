@@ -88,9 +88,11 @@ resource "google_service_networking_connection" "private_vpc_connection" {
 # 2. AlloyDB Infrastructure
 # -------------------------
 resource "google_alloydb_cluster" "default" {
-  provider   = google-beta
-  cluster_id = "alloydb-lab-cluster"
-  location   = var.region
+  provider         = google-beta
+  cluster_id       = "alloydb-lab-cluster"
+  location         = var.region
+  database_version    = "POSTGRES_17"
+  deletion_protection = false
   
   network_config {
     network = local.network_id
@@ -100,6 +102,10 @@ resource "google_alloydb_cluster" "default" {
     password = var.db_password
   }
 
+  automated_backup_policy {
+    enabled = false
+  }
+  
   depends_on = [
     google_service_networking_connection.private_vpc_connection,
     google_project_service.api_alloydb,
@@ -122,7 +128,7 @@ resource "google_alloydb_instance" "default" {
 # --------------------------------------
 resource "google_sql_database_instance" "postgres" {
   name             = "postgres-lab-instance"
-  database_version = "POSTGRES_15" # Using 15 as 16 might strictly require beta or specific flags in some zones, keeping 15 for stability unless user forces 16. Actually let's try 16 as requested (highest).
+  database_version = "POSTGRES_17"
   region           = var.region
 
   depends_on = [
@@ -131,12 +137,18 @@ resource "google_sql_database_instance" "postgres" {
     google_project_service.api_servicenetworking
   ]
 
+  deletion_protection = false
+
   settings {
     tier              = "db-f1-micro" # Smallest available (Shared Core)
     availability_type = "ZONAL"       # No HA
+    edition           = "ENTERPRISE"
     ip_configuration {
       ipv4_enabled    = false
       private_network = local.network_id
+    }
+    backup_configuration {
+      enabled = false
     }
   }
   
@@ -151,7 +163,7 @@ resource "google_sql_database_instance" "postgres" {
 # ---------------------------------
 resource "google_sql_database_instance" "mysql" {
   name             = "mysql-lab-instance"
-  database_version = "MYSQL_8_0"
+  database_version = "MYSQL_8_4"
   region           = var.region
 
   depends_on = [
@@ -160,12 +172,18 @@ resource "google_sql_database_instance" "mysql" {
     google_project_service.api_servicenetworking
   ]
 
+  deletion_protection = false
+
   settings {
     tier              = "db-custom-1-3840" # Smallest viable for MySQL 8 (1 vCPU)
     availability_type = "ZONAL"            # No HA
+    edition           = "ENTERPRISE"
     ip_configuration {
       ipv4_enabled    = false
       private_network = local.network_id
+    }
+    backup_configuration {
+      enabled = false
     }
   }
   
@@ -180,7 +198,7 @@ resource "google_sql_database_instance" "mysql" {
 # --------------------------------------
 resource "google_sql_database_instance" "mssql" {
   name             = "mssql-lab-instance"
-  database_version = "SQLSERVER_2019_EXPRESS"
+  database_version = "SQLSERVER_2022_EXPRESS"
   region           = var.region
 
   depends_on = [
@@ -189,12 +207,17 @@ resource "google_sql_database_instance" "mssql" {
     google_project_service.api_servicenetworking
   ]
 
+  deletion_protection = false
+
   settings {
     tier              = "db-custom-2-3840" # Express usage often lower, trying 3840MB RAM. If fails, revert to 7680.
     availability_type = "ZONAL"            # No HA
     ip_configuration {
       ipv4_enabled    = false
       private_network = local.network_id
+    }
+    backup_configuration {
+      enabled = false
     }
   }
   
