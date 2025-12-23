@@ -1,8 +1,68 @@
-This recipe reproduces the structure of your provided CSV files (Customers, Orders, Products, etc.) and uses formulas to ensure relational integrity
 
-Since Snowfakery uses SQLAlchemy, you can use this single script to output the data to all five of your required database types.
+## Getting Started
 
-Note: You will need the respective database drivers (e.g., psycopg2 for PostgreSQL/AlloyDB, pymysql for MySQL, pyodbc for MS SQL, and hdbcli for SAP HANA) installed in your environment.
+### Prerequisites
+- Python 3.8+
+- [Terraform](https://www.terraform.io/downloads.html)
+- Docker (optional, for local DB testing)
+- **macOS Users**: `brew install unixodbc` (required for MSSQL driver)
+
+### Installation
+
+1. **Clone or navigate to the project directory:**
+   ```bash
+   cd snowfakery-db-lab
+   ```
+
+2. **Create and activate a virtual environment:**
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+
+3. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+### Quick Start
+To generate data across all configured databases:
+```bash
+python setup.py
+```
+*Note: Ensure your databases are running and accessible via the connection strings defined in `setup.py`.*
+
+
+
+
+### Advanced Usage (CLI Arguments)
+You can now target specific databases using command-line arguments:
+
+```bash
+# Run only for PostgreSQL and MySQL
+python generate_data.py --targets POSTGRES MYSQL
+
+# Run with custom iterations
+python generate_data.py --targets HANA --iterations 5
+
+# Show help
+python generate_data.py --help
+```
+
+Supported targets: `POSTGRES`, `ALLOYDB`, `MYSQL`, `MSSQL`, `HANA`.
+
+Referece environment variables (optional fallback):
+```bash
+export ENABLED_DBS="POSTGRES,MYSQL"
+python generate_data.py
+```
+
+## Data Generation
+This recipe reproduces the structure of your provided CSV files (Customers, Orders, Products, etc.) and uses formulas to ensure relational integrity.
+
+Since Snowfakery uses SQLAlchemy, you can use the `setup.py` script to output the data to all five of your required database types.
+
+Note: The `requirements.txt` file includes the necessary database drivers (psycopg2, pymysql, pyodbc, hdbcli).
 
 Implementation Details
 

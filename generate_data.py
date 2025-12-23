@@ -33,18 +33,26 @@ def get_db_url(db_type):
     else:
         raise ValueError(f"Unknown DB type: {db_type}")
 
-def run_generation(recipe_file, iterations=1, batch_size=1000):
+import argparse
+
+def run_generation(recipe_file, iterations=1, targets=None):
     """Runs Snowfakery generation for all configured targets."""
     
-    # Detect which DBs are enabled via env vars (default to all if not specified)
-    # We can use a comma-separated list in ENABLED_DBS env var
-    enabled_dbs = os.getenv("ENABLED_DBS", "POSTGRES,ALLOYDB,MYSQL,MSSQL,HANA").split(",")
-    enabled_dbs = [db.strip().upper() for db in enabled_dbs]
+    # Default to all if not specified
+    if not targets:
+        # Check env var fallback
+        env_dbs = os.getenv("ENABLED_DBS", "")
+        if env_dbs:
+            targets = [db.strip().upper() for db in env_dbs.split(",")]
+        else:
+            targets = ["POSTGRES", "ALLOYDB", "MYSQL", "MSSQL", "HANA"]
+    else:
+        targets = [t.upper() for t in targets]
 
     print(f"Starting generation using recipe: {recipe_file}")
-    print(f"Iterations: {iterations}, Targets: {enabled_dbs}")
+    print(f"Iterations: {iterations}, Targets: {targets}")
 
-    for db_type in enabled_dbs:
+    for db_type in targets:
         try:
             db_url = get_db_url(db_type)
             print(f"\n--- Target: {db_type} ---")
@@ -56,10 +64,6 @@ def run_generation(recipe_file, iterations=1, batch_size=1000):
                     recipe_file,
                     "--dburl", db_url
                 ]
-                # Snowfakery doesn't have a specific 'batch size' arg per se for the CLI to restart, 
-                # but 'count' in recipe controls volume. 
-                # We assume recipe handles 'count' or we pass it if needed.
-                # If we want to override count from CLI: "--plugin-option", "count=..."
                 
                 result = subprocess.run(cmd, capture_output=True, text=True)
                 
@@ -73,8 +77,15 @@ def run_generation(recipe_file, iterations=1, batch_size=1000):
             print(f"Skipping {db_type} due to configuration error: {e}")
 
 if __name__ == "__main__":
-    # Default execution
+    parser = argparse.ArgumentParser(description="Run Snowfakery generation for specific databases.")
+    parser.add_argument("--targets", "-t", nargs="+", help="List of databases to target (e.g. POSTGRES MYSQL)")
+    parser.add_argument("--iterations", "-i", type=int, default=int(os.getenv("ITERATIONS", "1")), help="Number of iterations per database")
+    parser.add_argument("--recipe", "-r", default="sap_complete.recipe.yml", help="Path to recipe file")
+    
+    args = parser.parse_args()
+    
     run_generation(
-        recipe_file="sap_complete.recipe.yml",
-        iterations=int(os.getenv("ITERATIONS", "1"))
+        recipe_file=args.recipe,
+        iterations=args.iterations,
+        targets=args.targets
     )

@@ -1,0 +1,6 @@
+snowfakery
+psycopg2-binary
+pymysql
+pyodbc
+hdbcli
+sqlalchemy-hana
