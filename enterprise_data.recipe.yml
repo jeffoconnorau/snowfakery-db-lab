@@ -1,0 +1,49 @@
+# enterprise_data.recipe.yml
+snowfakery_version: 3
+
+# 1. Generate Products (Reference Data)
+- object: Product
+  count: 50
+  fields:
+    ProductName: ${{fake.Word}} Edition
+    Category: ${{random_choice("Footwear", "Apparel", "Accessories", "Bags", "Jewelry")}}
+    Brand: ${{fake.Company}}
+    Price: ${{random_number(min=20, max=500)}}
+    Size: ${{random_choice("S", "M", "L", "XL", "One Size")}}
+    Color: ${{fake.ColorName}}
+
+# 2. Generate Stores
+- object: Store
+  count: 10
+  fields:
+    StoreName: ${{fake.Company}} Outlet
+    Location: ${{fake.StreetAddress}}
+    City: ${{fake.City}}
+    State: ${{fake.StateAbbr}}
+    ZipCode: ${{fake.Zipcode}}
+
+# 3. Generate Customers and their related Orders
+- object: Customer
+  count: 1000  # Adjust this for "as large as possible"
+  fields:
+    FirstName: ${{fake.FirstName}}
+    LastName: ${{fake.LastName}}
+    Email: ${{fake.Email}}
+    PhoneNumber: ${{fake.PhoneNumber}}
+    CreatedDate: ${{date_between(start_date='-2y', end_date='today')}}
+  friends:
+    - object: Order
+      count: ${{random_number(min=1, max=5)}}
+      fields:
+        OrderDate: ${{date_between(start_date='-1y', end_date='today')}}
+        OrderTime: "12:00:00"
+        StoreID: ${{random_number(min=1, max=10)}}
+        PaymentMethod: ${{random_choice("Credit Card", "Debit Card", "Cash")}}
+        TotalAmount: ${{random_number(min=50, max=1000)}}
+      friends:
+        - object: OrderItem
+          count: ${{random_number(min=1, max=3)}}
+          fields:
+            ProductID: ${{random_number(min=1, max=50)}}
+            Quantity: ${{random_number(min=1, max=5)}}
+            PricePerUnit: ${{random_number(min=10, max=200)}}

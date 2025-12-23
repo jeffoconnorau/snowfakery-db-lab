@@ -1,0 +1,21 @@
+StoreID,StoreName,Location,City,State,ZipCode,CreatedDate,UpdatedDate
+1,Nike SoHo,529 Broadway,New York,NY,10012,2024-01-01,2024-01-01
+2,Levi's Times Square,1501 Broadway,New York,NY,10036,2024-02-15,2024-02-15
+3,Adidas Fifth Avenue,565 5th Ave,New York,NY,10017,2024-03-10,2024-03-10
+4,Ralph Lauren Madison Avenue,888 Madison Ave,New York,NY,10021,2024-04-05,2024-04-05
+5,Zara Fifth Avenue,666 5th Ave,New York,NY,10103,2024-05-12,2024-05-12
+6,Timberland SoHo,125 Spring St,New York,NY,10012,2024-06-18,2024-06-18
+7,Havaianas Times Square,1515 Broadway,New York,NY,10036,2024-07-22,2024-07-22
+8,Champion Herald Square,1 Herald Sq,New York,NY,10001,2024-08-28,2024-08-28
+9,Uniqlo Fifth Avenue,546 5th Ave,New York,NY,10036,2024-09-03,2024-09-03
+10,The North Face SoHo,179 Greene St,New York,NY,10012,2024-10-08,2024-10-08
+11,Calvin Klein Madison Avenue,654 Madison Ave,New York,NY,10021,2024-11-13,2024-11-13
+12,Gucci Fifth Avenue,725 5th Ave,New York,NY,10022,2024-12-19,2024-12-19
+13,New Era Times Square,29 W 42nd St,New York,NY,10036,2024-01-24,2024-01-24
+14,Burberry SoHo,131 Spring St,New York,NY,10012,2024-02-29,2024-02-29
+15,Coach Fifth Avenue,584 5th Ave,New York,NY,10036,2024-03-06,2024-03-06
+16,Ray-Ban Times Square,1535 Broadway,New York,NY,10036,2024-04-11,2024-04-11
+17,Herschel SoHo,449 Broadway,New York,NY,10013,2024-05-16,2024-05-16
+18,Fossil Fifth Avenue,627 5th Ave,New York,NY,10022,2024-06-21,2024-06-21
+19,Casio Times Square,1551 Broadway,New York,NY,10036,2024-07-26,2024-07-26
+20,Pandora SoHo,489 Broadway,New York,NY,10013,2024-08-31,2024-08-31

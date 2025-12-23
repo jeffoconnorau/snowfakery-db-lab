@@ -1,0 +1,21 @@
+ProductID,ProductName,Category,Brand,Price,Size,Color,CreatedDate,UpdatedDate
+1,Air Max 270,Footwear,Nike,150,10,Black,2024-04-01,2024-04-01
+2,501 Original Fit Jeans,Apparel,Levis,79.5,32,Blue,2024-04-01,2024-04-01
+3,Ultraboost DNA Shoes,Footwear,Adidas,180,9,White,2024-04-01,2024-04-01
+4,Oxford Cloth Button-Down,Apparel,Ralph Lauren,89.5,L,White,2024-04-01,2024-04-01
+5,Printed V-Neck Blouse,Apparel,Zara,39.95,S,Floral,2024-04-01,2024-04-01
+6,Premium 6-Inch Waterproof Boots,Footwear,Timberland,170,8,Brown,2024-04-01,2024-04-01
+7,Top Flip-Flops,Footwear,Havaianas,28,7,Black,2024-04-01,2024-04-01
+8,Reverse Weave Hoodie,Apparel,Champion,65,XL,Gray,2024-04-01,2024-04-01
+9,Merino Wool Crew Neck Sweater,Apparel,Uniqlo,79.9,M,Green,2024-04-01,2024-04-01
+10,1996 Retro Nuptse Jacket,Apparel,The North Face,280,L,Black,2024-04-01,2024-04-01
+11,Cotton Stretch Trunk (3-Pack),Apparel,Calvin Klein,42.5,L,White,2024-04-01,2024-04-01
+12,Leather Belt with Double G Buckle,Accessories,Gucci,450,34,Brown,2024-04-01,2024-04-01
+13,9FORTY MLB New York Yankees Cap,Accessories,New Era,34.99,One Size,Navy,2024-04-01,2024-04-01
+14,Classic Check Cashmere Scarf,Accessories,Burberry,430,One Size,Beige,2024-04-01,2024-04-01
+15,Leather Gloves with Tech Tips,Accessories,Coach,150,M,Black,2024-04-01,2024-04-01
+16,Wayfarer Sunglasses,Accessories,Ray-Ban,160,One Size,Black,2024-04-01,2024-04-01
+17,Retreat Backpack,Bags,Herschel,80,One Size,Gray,2024-04-01,2024-04-01
+18,Derrick RFID Bifold Wallet,Accessories,Fossil,60,One Size,Brown,2024-04-01,2024-04-01
+19,G-Shock GA-2100-1A1,Accessories,Casio,120,One Size,Black,2024-04-01,2024-04-01
+20,Sparkling Wishbone Necklace,Jewelry,Pandora,95,One Size,Silver,2024-04-01,2024-04-01

@@ -1,0 +1,73 @@
+# sap_complete.recipe.yml
+snowfakery_version: 3
+
+# --- 1. PRODUCT MASTER (MARA) ---
+- object: MARA
+  count: 200
+  fields:
+    [cite_start]MATNR: ${{unique_id}}            # Material Number [cite: 258]
+    [cite_start]MTART: ${{random_choice("FERT", "HALB", "ROH")}} # Material Type [cite: 285]
+    MBRSH: "M"                       # Industry Sector
+    MEINS: "PC"                      # Base Unit of Measure
+    [cite_start]MAKTX: ${{fake.Word}} Product Group # Description [cite: 632]
+
+# --- 2. CUSTOMER MASTER (KNA1) ---
+- object: KNA1
+  count: 10000 
+  fields:
+    [cite_start]KUNNR: ${{unique_id}}            # Customer Number [cite: 258]
+    [cite_start]NAME1: ${{fake.Company}}         # Name [cite: 471]
+    [cite_start]ORT01: ${{fake.City}}            # City [cite: 417]
+    [cite_start]PSTLZ: ${{fake.Postalcode}}      # Postal Code [cite: 394]
+    [cite_start]LAND1: ${{fake.CountryCode}}     # Country Key [cite: 848]
+    [cite_start]TELF1: ${{fake.PhoneNumber}}     # Telephone [cite: 718]
+    [cite_start]ERDAT: ${{date_between(start_date='-5y', end_date='today')}} # Created On [cite: 318]
+
+# --- 3. SALES ORDER HEADER (VBAK) & FINANCIALS ---
+  friends:
+    - object: VBAK
+      count: ${{random_number(min=1, max=5)}} 
+      fields:
+        [cite_start]VBELN: ${{unique_id}}        # Sales Document [cite: 258]
+        [cite_start]ERDAT: ${{date_between(start_date='-1y', end_date='today')}} [cite: 308]
+        AUART: "OR"                  # Standard Order
+        [cite_start]NETWR: ${{random_number(min=100, max=5000)}} # Net Value [cite: 296]
+        WAERK: "USD"                 # Currency
+        VKORG: "1000"                # Sales Org
+
+      friends:
+        # --- 3a. SALES ORDER ITEMS (VBAP) ---
+        - object: VBAP
+          count: ${{random_number(min=1, max=5)}}
+          fields:
+            [cite_start]VBELN: ${{parent.VBELN}} # Link to Header
+            [cite_start]POSNR: ${{unique_id}}    # Item Number
+            [cite_start]MATNR: ${{random_number(min=1, max=200)}} # Simple link to Material (mock ID)
+            [cite_start]KWMENG: ${{random_number(min=1, max=100)}} # Quantity
+            [cite_start]NETPR: ${{random_number(min=10, max=500)}} # Price
+
+      
+      # --- 4. ACCOUNTING DOCUMENT HEADER (BKPF) ---
+      friends:
+        - object: BKPF
+          count: 1                   # One accounting header per sales order
+          fields:
+            [cite_start]BELNR: ${{unique_id}}    # Accounting Document Number [cite: 258]
+            BUKRS: "1000"            # Company Code
+            GJAHR: "2024"            # Fiscal Year
+            BLART: "RV"              # Billing Document Type
+            [cite_start]BLDAT: ${{parent.ERDAT}} # Document Date [cite: 200]
+            [cite_start]MONAT: ${{random_number(min=1, max=12)}} # Fiscal Period [cite: 296]
+            [cite_start]USNAM: ${{fake.UserName}} # User Name [cite: 732]
+
+        # --- 5. ACCOUNTING DOCUMENT SEGMENT (BSEG) ---
+        - object: BSEG
+          count: 2                   # Typically a Debit and a Credit entry
+          fields:
+            [cite_start]BELNR: ${{parent.BELNR}} # Link to BKPF [cite: 200]
+            BUKRS: "1000"
+            GJAHR: "2024"
+            [cite_start]BUZEI: ${{unique_id}}    # Line Item Number [cite: 258]
+            [cite_start]BSCHL: ${{random_choice("01", "50")}} # Posting Key (Customer Dr / G/L Cr) [cite: 285]
+            [cite_start]KOART: ${{random_choice("D", "S")}}   # Account Type (Customer / G/L) [cite: 285]
+            [cite_start]WRBTR: ${{parent.NETWR}} # Amount in Document Currency [cite: 200]
