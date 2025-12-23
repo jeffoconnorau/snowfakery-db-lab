@@ -6,13 +6,13 @@ variable "project_id" {
 variable "region" {
   description = "The Google Cloud region"
   type        = string
-  default     = "us-central1"
+  default     = "asia-southeast1"
 }
 
 variable "zone" {
   description = "The Google Cloud zone"
   type        = string
-  default     = "us-central1-a"
+  default     = "asia-southeast1-a"
 }
 
 variable "db_password" {
