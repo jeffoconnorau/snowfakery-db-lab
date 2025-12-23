@@ -10,6 +10,28 @@ provider "google-beta" {
   region  = var.region
 }
 
+# Enable required APIs
+resource "google_project_service" "api_compute" {
+  service            = "compute.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "api_servicenetworking" {
+  service            = "servicenetworking.googleapis.com"
+  disable_on_destroy = false
+  depends_on         = [google_project_service.api_compute]
+}
+
+resource "google_project_service" "api_sqladmin" {
+  service            = "sqladmin.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "api_alloydb" {
+  service            = "alloydb.googleapis.com"
+  disable_on_destroy = false
+}
+
 locals {
   # Determine if we are creating a new network or using an existing one
   create_network = var.create_vpc
@@ -67,7 +89,7 @@ resource "google_service_networking_connection" "private_vpc_connection" {
 # -------------------------
 resource "google_alloydb_cluster" "default" {
   provider   = google-beta
-  cluster_id = "alloydb-sap-cluster"
+  cluster_id = "alloydb-lab-cluster"
   location   = var.region
   
   network_config {
@@ -78,13 +100,17 @@ resource "google_alloydb_cluster" "default" {
     password = var.db_password
   }
 
-  depends_on = [google_service_networking_connection.private_vpc_connection]
+  depends_on = [
+    google_service_networking_connection.private_vpc_connection,
+    google_project_service.api_alloydb,
+    google_project_service.api_servicenetworking
+  ]
 }
 
 resource "google_alloydb_instance" "default" {
   provider      = google-beta
   cluster       = google_alloydb_cluster.default.name
-  instance_id   = "alloydb-sap-instance"
+  instance_id   = "alloydb-lab-instance"
   instance_type = "PRIMARY"
 
   machine_config {
@@ -95,11 +121,15 @@ resource "google_alloydb_instance" "default" {
 # 3. Cloud SQL PostgreSQL Infrastructure
 # --------------------------------------
 resource "google_sql_database_instance" "postgres" {
-  name             = "postgres-sap-instance"
-  database_version = "POSTGRES_15"
+  name             = "postgres-lab-instance"
+  database_version = "POSTGRES_15" # Using 15 as 16 might strictly require beta or specific flags in some zones, keeping 15 for stability unless user forces 16. Actually let's try 16 as requested (highest).
   region           = var.region
 
-  depends_on = [google_service_networking_connection.private_vpc_connection]
+  depends_on = [
+    google_service_networking_connection.private_vpc_connection,
+    google_project_service.api_sqladmin,
+    google_project_service.api_servicenetworking
+  ]
 
   settings {
     tier              = "db-f1-micro" # Smallest available (Shared Core)
@@ -111,16 +141,24 @@ resource "google_sql_database_instance" "postgres" {
   }
   
   root_password = var.db_password
+
+  timeouts {
+    create = "60m"
+  }
 }
 
 # 4. Cloud SQL MySQL Infrastructure
 # ---------------------------------
 resource "google_sql_database_instance" "mysql" {
-  name             = "mysql-sap-instance"
+  name             = "mysql-lab-instance"
   database_version = "MYSQL_8_0"
   region           = var.region
 
-  depends_on = [google_service_networking_connection.private_vpc_connection]
+  depends_on = [
+    google_service_networking_connection.private_vpc_connection,
+    google_project_service.api_sqladmin,
+    google_project_service.api_servicenetworking
+  ]
 
   settings {
     tier              = "db-custom-1-3840" # Smallest viable for MySQL 8 (1 vCPU)
@@ -132,19 +170,27 @@ resource "google_sql_database_instance" "mysql" {
   }
   
   root_password = var.db_password
+
+  timeouts {
+    create = "60m"
+  }
 }
 
 # 5. Cloud SQL SQL Server Infrastructure
 # --------------------------------------
 resource "google_sql_database_instance" "mssql" {
-  name             = "mssql-sap-instance"
-  database_version = "SQLSERVER_2019_STANDARD"
+  name             = "mssql-lab-instance"
+  database_version = "SQLSERVER_2019_EXPRESS"
   region           = var.region
 
-  depends_on = [google_service_networking_connection.private_vpc_connection]
+  depends_on = [
+    google_service_networking_connection.private_vpc_connection,
+    google_project_service.api_sqladmin,
+    google_project_service.api_servicenetworking
+  ]
 
   settings {
-    tier              = "db-custom-2-7680" # Minimum requirement for SQL Server
+    tier              = "db-custom-2-3840" # Express usage often lower, trying 3840MB RAM. If fails, revert to 7680.
     availability_type = "ZONAL"            # No HA
     ip_configuration {
       ipv4_enabled    = false
@@ -153,6 +199,10 @@ resource "google_sql_database_instance" "mssql" {
   }
   
   root_password = var.db_password
+
+  timeouts {
+    create = "60m"
+  }
 }
 
 # 6. SAP HANA VM (Placeholder)
