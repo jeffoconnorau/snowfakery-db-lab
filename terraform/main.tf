@@ -180,8 +180,8 @@ resource "google_compute_disk" "hana_shared" {
 resource "google_compute_instance" "hana_vm" {
   count        = var.create_hana_vm ? 1 : 0
   name         = "hana-express-vm"
-  # SAP HANA requires decent resources, e2-highmem-4 is minimum viable for testing
-  machine_type = "e2-highmem-4" 
+  # SAP HANA requires decent resources, e2-standard-8 is a good baseline
+  machine_type = "e2-standard-8" 
   zone         = var.zone
 
   boot_disk {
