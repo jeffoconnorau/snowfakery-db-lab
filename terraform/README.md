@@ -44,3 +44,14 @@ terraform apply \
   -var="network_project_id=host-project-id" \
   -var="db_password=secret"
 ```
+
+## Troubleshooting
+
+### Error: `oauth2: "invalid_grant" "reauth related error (invalid_rapt)"`
+This indicates your Google Cloud credentials have expired or require re-authentication due to organization policies.
+
+**Fix:**
+Run the following command to refresh your Application Default Credentials:
+```bash
+gcloud auth application-default login --reauth
+```
