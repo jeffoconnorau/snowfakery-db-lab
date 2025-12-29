@@ -22,7 +22,10 @@ MSSQL_CONNECTION_NAME = os.getenv("MSSQL_CONNECTION_NAME", "argo-svc-dbs:asia-so
 ALLOYDB_CLUSTER = os.getenv("ALLOYDB_CLUSTER", "projects/argo-svc-dbs/locations/asia-southeast1/clusters/alloydb-lab-cluster")
 ALLOYDB_INSTANCE = os.getenv("ALLOYDB_INSTANCE", "alloydb-lab-instance")
 
-DB_PASSWORD = os.getenv("DB_PASSWORD", "VMware123456") 
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+if not DB_PASSWORD:
+    raise ValueError("❌ DB_PASSWORD environment variable is required. Please export DB_PASSWORD='your_password'")
+
 DB_NAME = os.getenv("DB_NAME", "sap_db")
 DB_IP_TYPE = os.getenv("DB_IP_TYPE", "PUBLIC").upper() # PUBLIC, PRIVATE, PSC
 
