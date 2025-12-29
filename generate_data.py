@@ -22,7 +22,6 @@ MSSQL_CONNECTION_NAME = os.getenv("MSSQL_CONNECTION_NAME", "argo-svc-dbs:asia-so
 ALLOYDB_CLUSTER = os.getenv("ALLOYDB_CLUSTER", "projects/argo-svc-dbs/locations/asia-southeast1/clusters/alloydb-lab-cluster")
 ALLOYDB_INSTANCE = os.getenv("ALLOYDB_INSTANCE", "alloydb-lab-instance")
 
-DB_USER = os.getenv("DB_USER", "user")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "password") 
 DB_NAME = os.getenv("DB_NAME", "sap_db")
 DB_IP_TYPE = os.getenv("DB_IP_TYPE", "PUBLIC").upper() # PUBLIC, PRIVATE, PSC
@@ -43,15 +42,29 @@ def get_alloy_connector():
         _alloy_connector = AlloyConnector()
     return _alloy_connector
 
+def get_db_user(db_type):
+    """Returns configured user or smart default based on DB type."""
+    env_user = os.getenv("DB_USER")
+    if env_user:
+        return env_user
+    
+    if db_type == "MYSQL":
+        return "root"
+    elif db_type in ["POSTGRES", "ALLOYDB"]:
+        return "postgres"
+    return "user" # Fallback for others
+
 def get_engine(db_type):
     """Creates a SQLAlchemy engine using appropriate connector."""
+    current_user = get_db_user(db_type)
+    
     if db_type == "POSTGRES":
         connector = get_sql_connector()
         def getconn():
             return connector.connect(
                 POSTGRES_CONNECTION_NAME,
                 "pg8000",
-                user=DB_USER,
+                user=current_user,
                 password=DB_PASSWORD,
                 db=DB_NAME,
                 ip_type=DB_IP_TYPE
@@ -67,7 +80,7 @@ def get_engine(db_type):
             return connector.connect(
                 alloydb_full_uri,
                 "pg8000",
-                user=DB_USER,
+                user=current_user,
                 password=DB_PASSWORD,
                 db=DB_NAME,
                 ip_type=DB_IP_TYPE
@@ -80,7 +93,7 @@ def get_engine(db_type):
             return connector.connect(
                 MYSQL_CONNECTION_NAME,
                 "pymysql",
-                user=DB_USER,
+                user=current_user,
                 password=DB_PASSWORD,
                 db=DB_NAME,
                 ip_type=DB_IP_TYPE

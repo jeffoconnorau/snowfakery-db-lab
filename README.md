@@ -90,6 +90,10 @@ export POSTGRES_PASSWORD="secure_password"
 
 # For Private IP Connectivity (e.g., from a VM or VPN)
 export DB_IP_TYPE="PRIVATE" # Defaults to PUBLIC
+
+# Optional: Override Database User (Defaults: MySQL -> root, Postgres -> postgres)
+# export DB_USER="custom_user"
+
 python generate_data.py
 ```
 
