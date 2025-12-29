@@ -9,3 +9,8 @@ venv/
 .DS_Store
 terraform/.terraform/
 .terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+alloydb-auth-proxy
+test.json
+test_target_1.json

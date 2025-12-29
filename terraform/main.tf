@@ -88,6 +88,7 @@ resource "google_service_networking_connection" "private_vpc_connection" {
 # 2. AlloyDB Infrastructure
 # -------------------------
 resource "google_alloydb_cluster" "default" {
+  count            = var.create_alloydb ? 1 : 0
   provider         = google-beta
   cluster_id       = "alloydb-lab-cluster"
   location         = var.region
@@ -114,8 +115,9 @@ resource "google_alloydb_cluster" "default" {
 }
 
 resource "google_alloydb_instance" "default" {
+  count         = var.create_alloydb ? 1 : 0
   provider      = google-beta
-  cluster       = google_alloydb_cluster.default.name
+  cluster       = google_alloydb_cluster.default[0].name
   instance_id   = "alloydb-lab-instance"
   instance_type = "PRIMARY"
 
@@ -127,6 +129,7 @@ resource "google_alloydb_instance" "default" {
 # 3. Cloud SQL PostgreSQL Infrastructure
 # --------------------------------------
 resource "google_sql_database_instance" "postgres" {
+  count            = var.create_postgres ? 1 : 0
   name             = "postgres-lab-instance"
   database_version = "POSTGRES_17"
   region           = var.region
@@ -155,13 +158,14 @@ resource "google_sql_database_instance" "postgres" {
   root_password = var.db_password
 
   timeouts {
-    create = "60m"
+    create = "90m"
   }
 }
 
 # 4. Cloud SQL MySQL Infrastructure
 # ---------------------------------
 resource "google_sql_database_instance" "mysql" {
+  count            = var.create_mysql ? 1 : 0
   name             = "mysql-lab-instance"
   database_version = "MYSQL_8_4"
   region           = var.region
@@ -190,13 +194,14 @@ resource "google_sql_database_instance" "mysql" {
   root_password = var.db_password
 
   timeouts {
-    create = "60m"
+    create = "90m"
   }
 }
 
 # 5. Cloud SQL SQL Server Infrastructure
 # --------------------------------------
 resource "google_sql_database_instance" "mssql" {
+  count            = var.create_mssql ? 1 : 0
   name             = "mssql-lab-instance"
   database_version = "SQLSERVER_2022_EXPRESS"
   region           = var.region
@@ -224,7 +229,7 @@ resource "google_sql_database_instance" "mssql" {
   root_password = var.db_password
 
   timeouts {
-    create = "60m"
+    create = "90m"
   }
 }
 

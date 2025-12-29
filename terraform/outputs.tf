@@ -1,17 +1,17 @@
 output "alloydb_ip" {
-  value = google_alloydb_instance.default.ip_address
+  value = length(google_alloydb_instance.default) > 0 ? google_alloydb_instance.default[0].ip_address : null
 }
 
 output "postgres_ip" {
-  value = google_sql_database_instance.postgres.ip_address.0.ip_address
+  value = length(google_sql_database_instance.postgres) > 0 ? google_sql_database_instance.postgres[0].ip_address.0.ip_address : null
 }
 
 output "mysql_ip" {
-  value = google_sql_database_instance.mysql.ip_address.0.ip_address
+  value = length(google_sql_database_instance.mysql) > 0 ? google_sql_database_instance.mysql[0].ip_address.0.ip_address : null
 }
 
 output "mssql_ip" {
-  value = google_sql_database_instance.mssql.ip_address.0.ip_address
+  value = length(google_sql_database_instance.mssql) > 0 ? google_sql_database_instance.mssql[0].ip_address.0.ip_address : null
 }
 
 output "hana_vm_ip" {

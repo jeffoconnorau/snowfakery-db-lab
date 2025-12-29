@@ -50,3 +50,27 @@ variable "create_psa" {
   type        = bool
   default     = false
 }
+
+variable "create_postgres" {
+  description = "Whether to create the Cloud SQL Postgres instance"
+  type        = bool
+  default     = true
+}
+
+variable "create_mysql" {
+  description = "Whether to create the Cloud SQL MySQL instance"
+  type        = bool
+  default     = true
+}
+
+variable "create_mssql" {
+  description = "Whether to create the Cloud SQL MSSQL instance"
+  type        = bool
+  default     = true
+}
+
+variable "create_alloydb" {
+  description = "Whether to create the AlloyDB Cluster and Instance"
+  type        = bool
+  default     = true
+}
