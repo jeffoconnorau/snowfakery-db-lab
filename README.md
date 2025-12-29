@@ -22,6 +22,18 @@ terraform apply
 ```
 *Note: This will output connection details (IPs, connection strings) required for the data generation step.*
 
+### Selective/Cost-optimized Provisioning
+You can choose to create only specific databases to save costs or for focused testing. New variables (`create_postgres`, `create_mysql`, `create_mssql`, `create_alloydb`) default to `true`.
+
+**Example: Create only Postgres and AlloyDB:**
+```bash
+terraform apply \
+  -var="create_mysql=false" \
+  -var="create_mssql=false" \
+  -var="create_hana_vm=false"
+```
+*Note: If you destroy a database, remember to exclude it from `generate_data.py --targets`.*
+
 ## 2. Local Development Setup
 
 1. **Clone the repository:**
