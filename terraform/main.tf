@@ -162,6 +162,12 @@ resource "google_sql_database_instance" "postgres" {
   }
 }
 
+resource "google_sql_database" "postgres_db" {
+  count    = var.create_postgres ? 1 : 0
+  name     = "postgres_db"
+  instance = google_sql_database_instance.postgres[0].name
+}
+
 # 4. Cloud SQL MySQL Infrastructure
 # ---------------------------------
 resource "google_sql_database_instance" "mysql" {
@@ -198,6 +204,12 @@ resource "google_sql_database_instance" "mysql" {
   }
 }
 
+resource "google_sql_database" "mysql_db" {
+  count    = var.create_mysql ? 1 : 0
+  name     = "mysql_db"
+  instance = google_sql_database_instance.mysql[0].name
+}
+
 # 5. Cloud SQL SQL Server Infrastructure
 # --------------------------------------
 resource "google_sql_database_instance" "mssql" {
@@ -231,6 +243,12 @@ resource "google_sql_database_instance" "mssql" {
   timeouts {
     create = "90m"
   }
+}
+
+resource "google_sql_database" "mssql_db" {
+  count    = var.create_mssql ? 1 : 0
+  name     = "mssql_db"
+  instance = google_sql_database_instance.mssql[0].name
 }
 
 # 6. SAP HANA VM (Placeholder)

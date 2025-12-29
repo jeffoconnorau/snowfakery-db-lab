@@ -26,7 +26,9 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 if not DB_PASSWORD:
     raise ValueError("❌ DB_PASSWORD environment variable is required. Please export DB_PASSWORD='your_password'")
 
-DB_NAME = os.getenv("DB_NAME", "sap_db")
+if not DB_PASSWORD:
+    raise ValueError("❌ DB_PASSWORD environment variable is required. Please export DB_PASSWORD='your_password'")
+
 DB_IP_TYPE = os.getenv("DB_IP_TYPE", "PUBLIC").upper() # PUBLIC, PRIVATE, PSC
 
 # Global Connectors
@@ -57,9 +59,26 @@ def get_db_user(db_type):
         return "postgres"
     return "user" # Fallback for others
 
+def get_db_name(db_type):
+    """Returns configured database name or smart default based on DB type."""
+    env_name = os.getenv("DB_NAME")
+    if env_name:
+        return env_name
+    
+    if db_type == "POSTGRES":
+        return "postgres_db"
+    elif db_type == "MYSQL":
+        return "mysql_db"
+    elif db_type == "MSSQL":
+        return "mssql_db"
+    elif db_type == "ALLOYDB":
+        return "postgres" # AlloyDB default DB
+    return "postgres_db"
+
 def get_engine(db_type):
     """Creates a SQLAlchemy engine using appropriate connector."""
     current_user = get_db_user(db_type)
+    current_db = get_db_name(db_type)
     
     if db_type == "POSTGRES":
         connector = get_sql_connector()
@@ -69,7 +88,7 @@ def get_engine(db_type):
                 "pg8000",
                 user=current_user,
                 password=DB_PASSWORD,
-                db=DB_NAME,
+                db=current_db,
                 ip_type=DB_IP_TYPE
             )
         return sqlalchemy.create_engine("postgresql+pg8000://", creator=getconn)
@@ -85,7 +104,7 @@ def get_engine(db_type):
                 "pg8000",
                 user=current_user,
                 password=DB_PASSWORD,
-                db=DB_NAME,
+                db=current_db,
                 ip_type=DB_IP_TYPE
             )
         return sqlalchemy.create_engine("postgresql+pg8000://", creator=getconn)
@@ -98,7 +117,7 @@ def get_engine(db_type):
                 "pymysql",
                 user=current_user,
                 password=DB_PASSWORD,
-                db=DB_NAME,
+                db=current_db,
                 ip_type=DB_IP_TYPE
             )
         return sqlalchemy.create_engine("mysql+pymysql://", creator=getconn)

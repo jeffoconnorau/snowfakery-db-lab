@@ -95,6 +95,9 @@ export DB_IP_TYPE="PRIVATE" # Defaults to PUBLIC
 # Optional: Override Database User (Defaults: MySQL -> root, Postgres -> postgres)
 # export DB_USER="custom_user"
 
+# Optional: Override Database Name (Defaults: mysql_db, postgres_db, mssql_db, postgres for AlloyDB)
+# export DB_NAME="custom_db_name"
+
 python generate_data.py
 ```
 
