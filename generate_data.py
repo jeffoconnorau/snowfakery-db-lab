@@ -25,6 +25,7 @@ ALLOYDB_INSTANCE = os.getenv("ALLOYDB_INSTANCE", "alloydb-lab-instance")
 DB_USER = os.getenv("DB_USER", "user")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "password") 
 DB_NAME = os.getenv("DB_NAME", "sap_db")
+DB_IP_TYPE = os.getenv("DB_IP_TYPE", "PUBLIC").upper() # PUBLIC, PRIVATE, PSC
 
 # Global Connectors
 _sql_connector = None
@@ -53,7 +54,7 @@ def get_engine(db_type):
                 user=DB_USER,
                 password=DB_PASSWORD,
                 db=DB_NAME,
-                ip_type=IPTypes.PUBLIC 
+                ip_type=DB_IP_TYPE
             )
         return sqlalchemy.create_engine("postgresql+pg8000://", creator=getconn)
 
@@ -69,6 +70,7 @@ def get_engine(db_type):
                 user=DB_USER,
                 password=DB_PASSWORD,
                 db=DB_NAME,
+                ip_type=DB_IP_TYPE
             )
         return sqlalchemy.create_engine("postgresql+pg8000://", creator=getconn)
 
@@ -81,7 +83,7 @@ def get_engine(db_type):
                 user=DB_USER,
                 password=DB_PASSWORD,
                 db=DB_NAME,
-                ip_type=IPTypes.PUBLIC 
+                ip_type=DB_IP_TYPE
             )
         return sqlalchemy.create_engine("mysql+pymysql://", creator=getconn)
 

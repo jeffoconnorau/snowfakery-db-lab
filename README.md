@@ -86,8 +86,10 @@ You can configure database connection strings via environment variables. This is
 ```bash
 export POSTGRES_HOST="10.x.x.x"
 export POSTGRES_PASSWORD="secure_password"
-# See generate_data.py for all available environment variables (MySQL, MSSQL, HANA, etc.)
+# See generate_data.py for all available environment variables
 
+# For Private IP Connectivity (e.g., from a VM or VPN)
+export DB_IP_TYPE="PRIVATE" # Defaults to PUBLIC
 python generate_data.py
 ```
 
