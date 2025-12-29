@@ -46,7 +46,17 @@ locals {
   network_name = var.network_name
   
   # Determine Project ID for Networking Resources (Host Project if Shared VPC, else Service Project)
+  # Determine Project ID for Networking Resources (Host Project if Shared VPC, else Service Project)
   network_project_id = var.network_project_id != "" ? var.network_project_id : var.project_id
+
+  # Password Logic: Use provided var.db_password or generated one
+  db_password = var.db_password != null ? var.db_password : random_password.generated_password.result
+}
+
+# Generate a random password if one isn't provided
+resource "random_password" "generated_password" {
+  length  = 16
+  special = false # simpler for DB compatibility
 }
 
 # 1. Network Setup
@@ -100,7 +110,7 @@ resource "google_alloydb_cluster" "default" {
   }
 
   initial_user {
-    password = var.db_password
+    password = local.db_password
   }
 
   automated_backup_policy {
@@ -125,6 +135,19 @@ resource "google_alloydb_instance" "default" {
     cpu_count = 2
   }
 }
+
+resource "google_alloydb_user" "dbadmin" {
+  count          = var.create_alloydb ? 1 : 0
+  cluster        = google_alloydb_cluster.default[0].name
+  user_id        = "dbadmin"
+  user_type      = "ALLOYDB_BUILT_IN"
+  password       = local.db_password
+  database_roles = ["alloydbsuperuser"]
+  provider       = google-beta
+  depends_on     = [google_alloydb_instance.default]
+}
+
+
 
 # 3. Cloud SQL PostgreSQL Infrastructure
 # --------------------------------------
@@ -155,7 +178,7 @@ resource "google_sql_database_instance" "postgres" {
     }
   }
   
-  root_password = var.db_password
+  root_password = local.db_password
 
   timeouts {
     create = "90m"
@@ -166,6 +189,13 @@ resource "google_sql_database" "postgres_db" {
   count    = var.create_postgres ? 1 : 0
   name     = "postgres_db"
   instance = google_sql_database_instance.postgres[0].name
+}
+
+resource "google_sql_user" "postgres_dbadmin" {
+  count    = var.create_postgres ? 1 : 0
+  name     = "dbadmin"
+  instance = google_sql_database_instance.postgres[0].name
+  password = local.db_password
 }
 
 # 4. Cloud SQL MySQL Infrastructure
@@ -197,7 +227,7 @@ resource "google_sql_database_instance" "mysql" {
     }
   }
   
-  root_password = var.db_password
+  root_password = local.db_password
 
   timeouts {
     create = "90m"
@@ -208,6 +238,14 @@ resource "google_sql_database" "mysql_db" {
   count    = var.create_mysql ? 1 : 0
   name     = "mysql_db"
   instance = google_sql_database_instance.mysql[0].name
+}
+
+resource "google_sql_user" "mysql_dbadmin" {
+  count    = var.create_mysql ? 1 : 0
+  name     = "dbadmin"
+  instance = google_sql_database_instance.mysql[0].name
+  password = local.db_password
+  host     = "%" # Allow from any host (Cloud SQL Proxy / Private IP safe-ish in VPC)
 }
 
 # 5. Cloud SQL SQL Server Infrastructure
@@ -238,7 +276,7 @@ resource "google_sql_database_instance" "mssql" {
     }
   }
   
-  root_password = var.db_password
+  root_password = local.db_password
 
   timeouts {
     create = "90m"
@@ -249,6 +287,13 @@ resource "google_sql_database" "mssql_db" {
   count    = var.create_mssql ? 1 : 0
   name     = "mssql_db"
   instance = google_sql_database_instance.mssql[0].name
+}
+
+resource "google_sql_user" "mssql_dbadmin" {
+  count    = var.create_mssql ? 1 : 0
+  name     = "dbadmin"
+  instance = google_sql_database_instance.mssql[0].name
+  password = local.db_password
 }
 
 # 6. SAP HANA VM (Placeholder)

@@ -17,3 +17,9 @@ output "mssql_ip" {
 output "hana_vm_ip" {
   value = length(google_compute_instance.hana_vm) > 0 ? google_compute_instance.hana_vm[0].network_interface.0.network_ip : null
 }
+
+output "db_password" {
+  description = "The password for the databases (dbadmin user)"
+  value       = local.db_password
+  sensitive   = true
+}

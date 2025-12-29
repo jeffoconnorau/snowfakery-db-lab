@@ -53,11 +53,9 @@ def get_db_user(db_type):
     if env_user:
         return env_user
     
-    if db_type == "MYSQL":
-        return "root"
-    elif db_type in ["POSTGRES", "ALLOYDB"]:
-        return "postgres"
-    return "user" # Fallback for others
+    # Default to specific 'dbadmin' user if available, or fallbacks.
+    # User requested 'dbadmin' standard user.
+    return "dbadmin"
 
 def get_db_name(db_type):
     """Returns configured database name or smart default based on DB type."""

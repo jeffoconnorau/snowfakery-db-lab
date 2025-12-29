@@ -16,9 +16,10 @@ variable "zone" {
 }
 
 variable "db_password" {
-  description = "Password for the databases"
+  description = "Password for the databases. If not provided, a random one will be generated."
   type        = string
   sensitive   = true
+  default     = null
 }
 
 variable "create_vpc" {
