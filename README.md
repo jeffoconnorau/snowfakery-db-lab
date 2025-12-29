@@ -92,10 +92,12 @@ export DB_PASSWORD="your_secure_password"
 # For Private IP Connectivity (e.g., from a VM or VPN)
 export DB_IP_TYPE="PRIVATE" # Defaults to PUBLIC
 
-# Optional: Override Database User (Defaults: MySQL -> root, Postgres -> postgres)
-# export DB_USER="custom_user"
+# Best Practice: Use a non-root user
+# It is recommended to create specific service accounts for applications.
+export DB_USER="my_app_user"
 
 # Optional: Override Database Name (Defaults: mysql_db, postgres_db, mssql_db, postgres for AlloyDB)
+# export DB_NAME="custom_db_name"
 # export DB_NAME="custom_db_name"
 
 python generate_data.py
