@@ -1,12 +1,16 @@
 import os
 import argparse
+import logging
 from urllib.parse import quote_plus
 import sqlalchemy
 import certifi
-from snowfakery import generate_data
+from snowfakery.generate_data import generate_data
 from snowfakery.output_streams import SqlDbOutputStream
 from google.cloud.sql.connector import Connector, IPTypes
 from google.cloud.alloydb.connector import Connector as AlloyConnector
+
+# Configure logging to show Snowfakery progress
+logging.basicConfig(level=logging.INFO)
 
 # --- Fix SSL Issues (Zscaler/Corporate Proxy context) ---
 # Force Python/OpenSSL to use certifi's bundle if no other bundle is set
