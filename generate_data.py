@@ -183,8 +183,9 @@ def patched_create_or_validate_tables(self, inferred_tables):
                                 col_type = "LONGTEXT" # standard TEXT is 64KB, might be tight for 50KB+ overhead
                             
                             quoted_table = self.engine.dialect.identifier_preparer.quote(actual_table_name)
+                            quoted_col = self.engine.dialect.identifier_preparer.quote("PAYLOAD")
                             with self.engine.connect() as conn:
-                                conn.execute(sqlalchemy.text(f"ALTER TABLE {quoted_table} ADD COLUMN PAYLOAD {col_type}"))
+                                conn.execute(sqlalchemy.text(f"ALTER TABLE {quoted_table} ADD COLUMN {quoted_col} {col_type}"))
                                 conn.commit()
                             print(f"   ✅ Added PAYLOAD to {actual_table_name}")
             except Exception as migration_err:
@@ -217,7 +218,9 @@ def patched_create_or_validate_tables(self, inferred_tables):
                         with self.engine.connect() as conn:
                             # MySQL requires repeated definition for MODIFY?
                             # ALTER TABLE t MODIFY col LONGTEXT
-                            conn.execute(sqlalchemy.text(f"ALTER TABLE {actual_table_name} MODIFY PAYLOAD LONGTEXT"))
+                            # MySQL usually is case-insensitive for cols unless strict, but quoting is safe.
+                            quoted_col = self.engine.dialect.identifier_preparer.quote("PAYLOAD")
+                            conn.execute(sqlalchemy.text(f"ALTER TABLE {actual_table_name} MODIFY {quoted_col} LONGTEXT"))
                             conn.commit()
         except Exception as e:
             print(f"   ⚠️ Could not enforce LONGTEXT on MySQL: {e}")
@@ -237,9 +240,10 @@ def patched_create_or_validate_tables(self, inferred_tables):
                     if payload_col:
                         print(f"   🔧 Postgres: Enforcing TEXT for {actual_table_name}.PAYLOAD...")
                         quoted_table = self.engine.dialect.identifier_preparer.quote(actual_table_name)
+                        quoted_col = self.engine.dialect.identifier_preparer.quote("PAYLOAD")
                         with self.engine.connect() as conn:
                             # Postgres syntax: ALTER COLUMN col TYPE type
-                            conn.execute(sqlalchemy.text(f"ALTER TABLE {quoted_table} ALTER COLUMN PAYLOAD TYPE TEXT"))
+                            conn.execute(sqlalchemy.text(f"ALTER TABLE {quoted_table} ALTER COLUMN {quoted_col} TYPE TEXT"))
                             conn.commit()
         except Exception as e:
             print(f"   ⚠️ Could not enforce TEXT on Postgres: {e}")
