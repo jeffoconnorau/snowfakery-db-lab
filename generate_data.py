@@ -136,6 +136,8 @@ def get_engine(db_type):
         raise ValueError(f"Unknown DB type for Connector: {db_type}")
 
 # --- Monkeypatching Snowfakery ---
+from snowfakery.data_gen_exceptions import DataGenError
+
 # We patch SqlDbOutputStream.from_url to intercept "connector://" URLs
 _original_from_url = SqlDbOutputStream.from_url
 
@@ -151,6 +153,20 @@ def patched_from_url(cls, db_url: str, mappings=None):
     return _original_from_url(db_url, mappings)
 
 SqlDbOutputStream.from_url = patched_from_url
+
+# We patch create_or_validate_tables to allow appending to existing tables without error
+_original_create_or_validate_tables = SqlDbOutputStream.create_or_validate_tables
+
+def patched_create_or_validate_tables(self, inferred_tables):
+    try:
+        _original_create_or_validate_tables(self, inferred_tables)
+    except DataGenError as e:
+        if "Table already exists" in str(e) and os.getenv("DB_APPEND", "false").lower() == "true":
+            print(f"   ⚠️ Ignoring table existence check (DB_APPEND=true). Assuming schema is compatible.")
+        else:
+            raise
+
+SqlDbOutputStream.create_or_validate_tables = patched_create_or_validate_tables
 # ----------------------------------
 
 def run_generation(recipe_file, iterations=1, targets=None):
