@@ -9,7 +9,8 @@
     MBRSH: "M"                       # Industry Sector
     MEINS: "PC"                      # Base Unit of Measure
     MAKTX: ${{fake.Word}} Product Group # Description
-    PAYLOAD: ${{fake.text(max_nb_chars=2000)}} # Bulk data for size testing
+    MAKTX: ${{fake.Word}} Product Group # Description
+    PAYLOAD: ${{fake.text(max_nb_chars=50000)}} # ~50KB Bulk Data
 
 # --- 2. CUSTOMER MASTER (KNA1) ---
 - object: KNA1
@@ -23,7 +24,8 @@
     TELF1: ${{fake.PhoneNumber}}     # Telephone
     TELF1: ${{fake.PhoneNumber}}     # Telephone
     ERDAT: ${{date_between(start_date='-5y', end_date='today')}} # Created On
-    PAYLOAD: ${{fake.text(max_nb_chars=2000)}} # Bulk data for size testing
+    ERDAT: ${{date_between(start_date='-5y', end_date='today')}} # Created On
+    PAYLOAD: ${{fake.text(max_nb_chars=50000)}} # ~50KB Bulk Data
 
 # --- 3. SALES ORDER HEADER (VBAK) & FINANCIALS ---
   friends:
@@ -36,7 +38,9 @@
         AUART: "OR"                  # Standard Order
         NETWR: ${{random_number(min=100, max=5000)}} # Net Value
         WAERK: "USD"                 # Currency
+        WAERK: "USD"                 # Currency
         VKORG: "1000"                # Sales Org
+        PAYLOAD: ${{fake.text(max_nb_chars=20000)}} # ~20KB Bulk Data
 
       friends:
         # --- 3a. SALES ORDER ITEMS (VBAP) ---
