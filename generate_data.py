@@ -182,8 +182,9 @@ def patched_create_or_validate_tables(self, inferred_tables):
                             if dialect == "mysql":
                                 col_type = "LONGTEXT" # standard TEXT is 64KB, might be tight for 50KB+ overhead
                             
+                            quoted_table = self.engine.dialect.identifier_preparer.quote(actual_table_name)
                             with self.engine.connect() as conn:
-                                conn.execute(sqlalchemy.text(f"ALTER TABLE {actual_table_name} ADD COLUMN PAYLOAD {col_type}"))
+                                conn.execute(sqlalchemy.text(f"ALTER TABLE {quoted_table} ADD COLUMN PAYLOAD {col_type}"))
                                 conn.commit()
                             print(f"   ✅ Added PAYLOAD to {actual_table_name}")
             except Exception as migration_err:
