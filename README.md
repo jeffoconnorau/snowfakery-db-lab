@@ -110,6 +110,7 @@ export DB_USER="my_app_user"
 # export DB_NAME="custom_db_name"
 
 # Scaling Data: Set number of iteration batches (Default: 1)
+# NOTE: This is additive! Running with 10 will append 10 *more* batches.
 # export DATA_ITERATIONS=10
 
 # Append Mode: Add to existing data instead of crashing (Uses snowfakery_continuation.yml)
