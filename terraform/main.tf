@@ -172,7 +172,7 @@ resource "google_sql_database_instance" "postgres" {
   deletion_protection = false
 
   settings {
-    tier              = "db-f1-micro" # Smallest available (Shared Core)
+    tier              = "db-n1-standard-1" # 1 vCPU, 3.75 GB
     availability_type = "ZONAL"       # No HA
     edition           = "ENTERPRISE"
     ip_configuration {
