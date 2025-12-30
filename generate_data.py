@@ -162,7 +162,33 @@ def patched_create_or_validate_tables(self, inferred_tables):
         _original_create_or_validate_tables(self, inferred_tables)
     except DataGenError as e:
         if "Table already exists" in str(e) and os.getenv("DB_APPEND", "false").lower() == "true":
-            print(f"   ⚠️ Ignoring table existence check (DB_APPEND=true). Assuming schema is compatible.")
+            print(f"   ⚠️ Ignoring table existence check (DB_APPEND=true).")
+            # Auto-Migrate: Check for missing PAYLOAD column and add it if missing
+            try:
+                insp = sqlalchemy.inspect(self.engine)
+                for table_name in ["MARA", "KNA1", "VBAK"]:
+                    # Note: Table names might be lower/upper case depending on DB. Snowfakery recipe uses UPPER.
+                    # We try to find the actual table name match.
+                    db_table_names = insp.get_table_names()
+                    actual_table_name = next((t for t in db_table_names if t.upper() == table_name), None)
+                    
+                    if actual_table_name:
+                        cols = [c['name'].upper() for c in insp.get_columns(actual_table_name)]
+                        if "PAYLOAD" not in cols:
+                            print(f"   🛠️ Auto-migrating: Adding PAYLOAD column to {actual_table_name}...")
+                            # Determine type based on dialect
+                            dialect = self.engine.dialect.name
+                            col_type = "TEXT"
+                            if dialect == "mysql":
+                                col_type = "LONGTEXT" # standard TEXT is 64KB, might be tight for 50KB+ overhead
+                            
+                            with self.engine.connect() as conn:
+                                conn.execute(sqlalchemy.text(f"ALTER TABLE {actual_table_name} ADD COLUMN PAYLOAD {col_type}"))
+                                conn.commit()
+                            print(f"   ✅ Added PAYLOAD to {actual_table_name}")
+            except Exception as migration_err:
+                print(f"   ❌ Migration failed: {migration_err}")
+                # We continue, assuming maybe it wasn't needed or user will fix.
         else:
             raise
 
