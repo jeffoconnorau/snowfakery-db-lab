@@ -160,7 +160,7 @@ resource "google_alloydb_user" "dbadmin" {
 resource "google_sql_database_instance" "postgres" {
   count            = var.create_postgres ? 1 : 0
   name             = "postgres-lab-instance"
-  database_version = "POSTGRES_17"
+  database_version = "POSTGRES_15"
   region           = var.region
 
   depends_on = [
@@ -174,7 +174,6 @@ resource "google_sql_database_instance" "postgres" {
   settings {
     tier              = "db-custom-1-3840" # 1 vCPU, 3.75 GB
     availability_type = "ZONAL"       # No HA
-    edition           = "ENTERPRISE"
     ip_configuration {
       ipv4_enabled    = false
       private_network = local.network_id
@@ -214,7 +213,7 @@ resource "google_sql_user" "postgres_dbadmin" {
 resource "google_sql_database_instance" "mysql" {
   count            = var.create_mysql ? 1 : 0
   name             = "mysql-lab-instance"
-  database_version = "MYSQL_8_4"
+  database_version = "MYSQL_8_0"
   region           = var.region
 
   depends_on = [
@@ -226,9 +225,8 @@ resource "google_sql_database_instance" "mysql" {
   deletion_protection = false
 
   settings {
-    tier              = "db-custom-1-3840" # Smallest viable for MySQL 8 (1 vCPU)
+    tier              = "db-f1-micro" # Smallest viable for MySQL 8 (1 vCPU)
     availability_type = "ZONAL"            # No HA
-    edition           = "ENTERPRISE"
     ip_configuration {
       ipv4_enabled    = false
       private_network = local.network_id
