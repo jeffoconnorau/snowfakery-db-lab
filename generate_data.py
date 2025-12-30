@@ -193,6 +193,57 @@ def patched_create_or_validate_tables(self, inferred_tables):
         else:
             raise
 
+    # Post-validation/creation: Ensure MySQL uses LONGTEXT for PAYLOAD to avoid "Data too long" (1406)
+    if self.engine.dialect.name == "mysql":
+        try:
+             insp = sqlalchemy.inspect(self.engine)
+             for table_name in ["MARA", "KNA1", "VBAK"]:
+                # Match table name
+                db_table_names = insp.get_table_names()
+                actual_table_name = next((t for t in db_table_names if t.upper() == table_name), None)
+                
+                if actual_table_name:
+                    cols = insp.get_columns(actual_table_name)
+                    payload_col = next((c for c in cols if c['name'].upper() == "PAYLOAD"), None)
+                    
+                    # If column exists, force LONGTEXT. 
+                    # Note: We do this blindly to ensure it's specifically LONGTEXT, as introspection might just say 'TEXT' for all blobs sometimes.
+                    if payload_col:
+                        # Optimization: only alter if we suspect it's small? 
+                        # Actually, executing ALTER MODIFY is cheap enough if no data or usually safe.
+                        # But wait, we might have just added it?
+                        # Let's just do it.
+                        print(f"   🔧 MySQL: Enforcing LONGTEXT for {actual_table_name}.PAYLOAD...")
+                        with self.engine.connect() as conn:
+                            # MySQL requires repeated definition for MODIFY?
+                            # ALTER TABLE t MODIFY col LONGTEXT
+                            conn.execute(sqlalchemy.text(f"ALTER TABLE {actual_table_name} MODIFY PAYLOAD LONGTEXT"))
+                            conn.commit()
+        except Exception as e:
+            print(f"   ⚠️ Could not enforce LONGTEXT on MySQL: {e}")
+
+    # Post-validation: Ensure Postgres uses TEXT for PAYLOAD (fix for VARCHAR limit issues)
+    if self.engine.dialect.name == "postgresql":
+        try:
+             insp = sqlalchemy.inspect(self.engine)
+             for table_name in ["MARA", "KNA1", "VBAK"]:
+                db_table_names = insp.get_table_names()
+                actual_table_name = next((t for t in db_table_names if t.upper() == table_name), None)
+                
+                if actual_table_name:
+                    cols = insp.get_columns(actual_table_name)
+                    payload_col = next((c for c in cols if c['name'].upper() == "PAYLOAD"), None)
+                    
+                    if payload_col:
+                        print(f"   🔧 Postgres: Enforcing TEXT for {actual_table_name}.PAYLOAD...")
+                        quoted_table = self.engine.dialect.identifier_preparer.quote(actual_table_name)
+                        with self.engine.connect() as conn:
+                            # Postgres syntax: ALTER COLUMN col TYPE type
+                            conn.execute(sqlalchemy.text(f"ALTER TABLE {quoted_table} ALTER COLUMN PAYLOAD TYPE TEXT"))
+                            conn.commit()
+        except Exception as e:
+            print(f"   ⚠️ Could not enforce TEXT on Postgres: {e}")
+
 SqlDbOutputStream.create_or_validate_tables = patched_create_or_validate_tables
 # ----------------------------------
 
