@@ -177,11 +177,25 @@ def run_generation(recipe_file, iterations=1, targets=None):
                 # Use Connector
                 db_url = f"connector://{db_type}"
 
+            # Check for Append Mode
+            db_append = os.getenv("DB_APPEND", "false").lower() == "true"
+            continuation_file_path = "snowfakery_continuation.yml"
+            gen_kwargs = {}
+
+            if db_append:
+                print(f"🔄 DB_APPEND enabled. Using continuation file: {continuation_file_path}")
+                gen_kwargs["generate_continuation_file"] = continuation_file_path
+                if os.path.exists(continuation_file_path):
+                    gen_kwargs["continuation_file"] = continuation_file_path
+                else:
+                    print(f"   ⚠️ Continuation file not found. A new one will be created.")
+            
             for i in range(iterations):
                 print(f"Batch {i+1}/{iterations}...")
                 generate_data(
                     recipe_file,
-                    dburl=db_url
+                    dburl=db_url,
+                    **gen_kwargs
                 )
                 print(f"Success {db_type} batch {i+1}")
                 

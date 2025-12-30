@@ -102,6 +102,9 @@ export DB_USER="my_app_user"
 # Scaling Data: Set number of iteration batches (Default: 1)
 # export DATA_ITERATIONS=10
 
+# Append Mode: Add to existing data instead of crashing (Uses snowfakery_continuation.yml)
+# export DB_APPEND=true
+
 python generate_data.py
 ```
 
