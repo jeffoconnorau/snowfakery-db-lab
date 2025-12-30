@@ -1,6 +1,7 @@
 import os
 import argparse
 import logging
+import shutil
 from urllib.parse import quote_plus
 import sqlalchemy
 import certifi
@@ -179,25 +180,44 @@ def run_generation(recipe_file, iterations=1, targets=None):
 
             # Check for Append Mode
             db_append = os.getenv("DB_APPEND", "false").lower() == "true"
-            continuation_file_path = "snowfakery_continuation.yml"
-            gen_kwargs = {}
+            continuation_file = "snowfakery_continuation.yml"
+            temp_continuation_file = "snowfakery_continuation_next.yml"
 
             if db_append:
-                print(f"🔄 DB_APPEND enabled. Using continuation file: {continuation_file_path}")
-                gen_kwargs["generate_continuation_file"] = continuation_file_path
-                if os.path.exists(continuation_file_path):
-                    gen_kwargs["continuation_file"] = continuation_file_path
-                else:
-                    print(f"   ⚠️ Continuation file not found. A new one will be created.")
-            
+                print(f"🔄 DB_APPEND enabled.")
+
             for i in range(iterations):
                 print(f"Batch {i+1}/{iterations}...")
-                generate_data(
-                    recipe_file,
-                    dburl=db_url,
-                    **gen_kwargs
-                )
-                print(f"Success {db_type} batch {i+1}")
+                gen_kwargs = {}
+                
+                if db_append:
+                    # Input: Use existing continuation file if valid (exists and not empty)
+                    if os.path.exists(continuation_file) and os.path.getsize(continuation_file) > 0:
+                        gen_kwargs["continuation_file"] = continuation_file
+                        print(f"   Using continuation file '{continuation_file}'")
+                    else:
+                        print(f"   Starting fresh (no valid continuation file found).")
+                    
+                    # Output: Write to a temp file to avoid corruption during run
+                    gen_kwargs["generate_continuation_file"] = temp_continuation_file
+                
+                try:
+                    generate_data(
+                        recipe_file,
+                        dburl=db_url,
+                        **gen_kwargs
+                    )
+                    
+                    # Commit: Move temp file to main continuation file
+                    if db_append and os.path.exists(temp_continuation_file):
+                        shutil.move(temp_continuation_file, continuation_file)
+                        print(f"   Updated continuation file '{continuation_file}'")
+                        
+                    print(f"Success {db_type} batch {i+1}")
+                except Exception as e:
+                    logging.error(f"❌ Error in {db_type} batch {i+1}: {e}", exc_info=True)
+                    # If error, do not overwrite continuation file with potentially partial state
+                    break
                 
         except Exception as e:
             logging.error(f"❌ Error in {db_type}: {e}", exc_info=True)
