@@ -191,7 +191,12 @@ def run_generation(recipe_file, iterations=1, targets=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--targets", "-t", nargs="+", help="Targets: POSTGRES ALLOYDB MYSQL MSSQL HANA")
-    parser.add_argument("--iterations", "-i", type=int, default=1)
+    
+    # Default iterations from environment variable, or 1 if not set
+    default_iterations = int(os.getenv("DATA_ITERATIONS", "1"))
+    parser.add_argument("--iterations", "-i", type=int, default=default_iterations, 
+                        help=f"Number of batches (Default: {default_iterations} from DATA_ITERATIONS env var)")
+    
     parser.add_argument("--recipe", "-r", default="complete_data.recipe.yml")
     args = parser.parse_args()
     

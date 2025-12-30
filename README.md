@@ -98,7 +98,9 @@ export DB_USER="my_app_user"
 
 # Optional: Override Database Name (Defaults: mysql_db, postgres_db, mssql_db, postgres for AlloyDB)
 # export DB_NAME="custom_db_name"
-# export DB_NAME="custom_db_name"
+
+# Scaling Data: Set number of iteration batches (Default: 1)
+# export DATA_ITERATIONS=10
 
 python generate_data.py
 ```
