@@ -132,6 +132,6 @@ This script performs cross-database row count comparisons and referential integr
 - `data/`: Contains reference CSV files.
 - `sap_hana/`: Contains SAP HANA specific DDL scripts.
 - `terraform/`: Infrastructure as Code for Google Cloud databases.
-- `complete_data.recipe.yml`: Main Snowfakery recipe with SAP schema.
+- `complete_data.recipe.yml`: Main Snowfakery recipe with SAP schema. Includes `PAYLOAD` fields (~2KB/row) to simulate heavy data.
 - `generate_data.py`: Main execution script.
 - `validate_data.py`: Data integrity validation script.
