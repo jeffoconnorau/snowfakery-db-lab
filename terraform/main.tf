@@ -134,6 +134,12 @@ resource "google_alloydb_instance" "default" {
   machine_config {
     cpu_count = 2
   }
+
+  query_insights_config {
+    record_application_tags = true
+    record_client_address   = true
+    query_plans_per_minute  = 5
+  }
 }
 
 resource "google_alloydb_user" "dbadmin" {
@@ -175,6 +181,11 @@ resource "google_sql_database_instance" "postgres" {
     }
     backup_configuration {
       enabled = false
+    }
+    insights_config {
+      query_insights_enabled  = true
+      record_application_tags = true
+      record_client_address   = true
     }
   }
   
@@ -224,6 +235,11 @@ resource "google_sql_database_instance" "mysql" {
     }
     backup_configuration {
       enabled = false
+    }
+    insights_config {
+      query_insights_enabled  = true
+      record_application_tags = true
+      record_client_address   = true
     }
   }
   
