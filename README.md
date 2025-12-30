@@ -31,8 +31,18 @@ terraform apply \
   -var="create_mysql=false" \
   -var="create_mssql=false" \
   -var="create_hana_vm=false"
+```bash
+  -var="create_hana_vm=false"
 ```
 *Note: If you destroy a database, remember to exclude it from `generate_data.py --targets`.*
+
+### Database Observability
+**Query Insights** are enabled by default for:
+*   **PostgreSQL** (Cloud SQL)
+*   **MySQL** (Cloud SQL)
+*   **AlloyDB**
+
+This allows you to see query performance and tags alongside the generated traffic. MSSQL does not currently support this configuration via the same Terraform block.
 
 ## 2. Local Development Setup
 
