@@ -4,7 +4,7 @@ import logging
 from urllib.parse import quote_plus
 import sqlalchemy
 import certifi
-from snowfakery.generate_data import generate_data
+from snowfakery import generate_data
 from snowfakery.output_streams import SqlDbOutputStream
 from google.cloud.sql.connector import Connector, IPTypes
 from google.cloud.alloydb.connector import Connector as AlloyConnector
