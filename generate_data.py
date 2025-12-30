@@ -146,7 +146,7 @@ def patched_from_url(cls, db_url: str, mappings=None):
         engine = get_engine(db_type)
         if not engine:
             raise ValueError(f"Could not create engine for {db_type}")
-        return cls(engine)
+        return cls(engine, mappings)
     return _original_from_url(db_url, mappings)
 
 SqlDbOutputStream.from_url = patched_from_url
@@ -200,7 +200,7 @@ def run_generation(recipe_file, iterations=1, targets=None):
                 print(f"Success {db_type} batch {i+1}")
                 
         except Exception as e:
-            print(f"❌ Error in {db_type}: {e}")
+            logging.error(f"❌ Error in {db_type}: {e}", exc_info=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
