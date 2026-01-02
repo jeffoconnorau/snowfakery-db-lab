@@ -359,6 +359,30 @@ def fix_mssql_schema(engine):
 SqlDbOutputStream.create_or_validate_tables = patched_create_or_validate_tables
 # ----------------------------------
 
+
+def verify_table_schema(engine, table_name="KNA1"):
+    """
+    DEBUG: Prints column types for the given table to verify if fixes worked.
+    """
+    try:
+        with engine.connect() as conn:
+            print(f"   🔍 Verifying schema for {table_name}...")
+            # MSSQL specific query
+            if engine.dialect.name == "mssql":
+                result = conn.execute(sqlalchemy.text(f"""
+                    SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH 
+                    FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_NAME = '{table_name}'
+                """))
+                found = False
+                for row in result:
+                    found = True
+                    print(f"      - {row[0]}: {row[1]} ({row[2]})")
+                if not found:
+                     print(f"      ⚠️ Table {table_name} NOT FOUND in INFORMATION_SCHEMA")
+    except Exception as e:
+        print(f"   ⚠️ Schema verification failed: {e}")
+
 def run_generation(recipe_file, iterations=1, targets=None, drop_tables=False):
     if not targets:
         # Default Targets (MSSQL skipped by default in this mode until fixed)
@@ -402,7 +426,13 @@ def run_generation(recipe_file, iterations=1, targets=None, drop_tables=False):
 
             # 4. Fix MSSQL Schema (Pre-emptively)
             if "mssql" in db_type.lower():
+                 print("   🧐 Checking schema BEFORE fix...")
+                 verify_table_schema(engine, "KNA1")
+                 
                  fix_mssql_schema(engine)
+                 
+                 print("   🧐 Checking schema AFTER fix...")
+                 verify_table_schema(engine, "KNA1")
 
             # Check for Append Mode
             db_append = os.getenv("DB_APPEND", "false").lower() == "true"
