@@ -273,23 +273,31 @@ def patched_create_or_validate_tables(self, inferred_tables):
                             ERDAT DATE,
                             PAYLOAD VARCHAR(MAX) -- FORCE MAX
                         )
-                    """))
+                conn.commit()
+            
+            # Re-inspect to get current columns (whether just created or existing)
+            # We do this outside the if/else to catch all cases
+            insp = sqlalchemy.inspect(engine)
+            cols = {c['name'].upper(): c for c in insp.get_columns("KNA1")}
+
+            # Also check Payload
+            if cols.get("PAYLOAD"):
+                with engine.connect() as conn:
+                    conn.execute(sqlalchemy.text("ALTER TABLE KNA1 ALTER COLUMN PAYLOAD VARCHAR(MAX)"))
                     conn.commit()
-            else:
-                print("   🔧 MSSQL: Checking KNA1.PSTLZ type...")
-                cols = {c['name'].upper(): c for c in insp.get_columns("KNA1")}
-                pstlz = cols.get("PSTLZ")
-                if pstlz and str(pstlz['type']).lower() in ['bigint', 'int', 'numeric']:
-                    print("   ⚠️ Found PSTLZ as INT/BIGINT. Converting to VARCHAR...")
-                    with engine.connect() as conn:
-                        conn.execute(sqlalchemy.text("ALTER TABLE KNA1 ALTER COLUMN PSTLZ NVARCHAR(50)"))
-                        conn.commit()
-                
-                # Also check Payload
-                if cols.get("PAYLOAD"):
-                    with engine.connect() as conn:
-                        conn.execute(sqlalchemy.text("ALTER TABLE KNA1 ALTER COLUMN PAYLOAD VARCHAR(MAX)"))
-                        conn.commit()
+
+            # Check other likely mis-inferred text fields
+            for col_name, max_len in [("TELF1", 255), ("ORT01", 255), ("NAME1", 255), ("LAND1", 255), ("PSTLZ", 50)]:
+                col_def = cols.get(col_name)
+                if col_def:
+                    col_type_str = str(col_def['type']).lower()
+                    print(f"   🔎 MSSQL: KNA1.{col_name} is currently '{col_type_str}'")
+                    # If it looks numeric or suspicious, force it to string
+                    if any(x in col_type_str for x in ['int', 'numeric', 'decimal', 'float', 'real']):
+                        print(f"   ⚠️ Found KNA1.{col_name} as NUMERIC/INT. Converting to NVARCHAR({max_len})...")
+                        with engine.connect() as conn:
+                            conn.execute(sqlalchemy.text(f"ALTER TABLE KNA1 ALTER COLUMN {col_name} NVARCHAR({max_len})"))
+                            conn.commit()
 
         except Exception as e:
             print(f"   ❌ Failed to fix MSSQL schema: {e}")
