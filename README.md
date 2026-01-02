@@ -87,8 +87,18 @@ python generate_data.py --targets POSTGRES MYSQL
 python generate_data.py --targets HANA --iterations 5
 
 # Use a specific recipe
+# Use a specific recipe
 python generate_data.py --recipe erp_data.recipe.yml
+
+# Verbose Logging (Debug Mode)
+# Enables detailed INFO logs (including pytds outputs). Default is WARNING (quiet).
+python generate_data.py --targets MSSQL --verbose
 ```
+
+### MSSQL Specifics
+*   **Permissions**: The script attempts to use the `sqlserver` admin user automatically for MSSQL to ensure sufficient privileges.
+*   **Schema Enforcement**: For `KNA1` (Customer Master), the script **automatically drops and recreates the table** with strict `NVARCHAR` types before every run to prevent data type conversion errors (`nvarchar` vs `bigint`).
+*   **Fresh Start**: If you need a completely fresh start for *all* tables, please manually `DROP DATABASE` and `CREATE DATABASE` in your SQL client before running the script. The script only mostly manages `KNA1` aggressively.
 
 ### Configuration (Environment Variables)
 You can configure database connection strings via environment variables. This is useful for CI/CD or connecting to the Terraform-provisioned infrastructure.
