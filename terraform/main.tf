@@ -143,19 +143,6 @@ resource "google_alloydb_instance" "default" {
   }
 }
 
-resource "google_alloydb_user" "dbadmin" {
-  count          = var.create_alloydb ? 1 : 0
-  cluster        = google_alloydb_cluster.default[0].name
-  user_id        = "dbadmin"
-  user_type      = "ALLOYDB_BUILT_IN"
-  password       = local.db_password
-  database_roles = ["alloydbsuperuser"]
-  provider       = google-beta
-  depends_on     = [google_alloydb_instance.default]
-}
-
-
-
 # 3. Cloud SQL PostgreSQL Infrastructure
 # --------------------------------------
 resource "google_sql_database_instance" "postgres" {
@@ -200,13 +187,6 @@ resource "google_sql_database" "postgres_db" {
   count    = var.create_postgres ? 1 : 0
   name     = "postgres_db"
   instance = google_sql_database_instance.postgres[0].name
-}
-
-resource "google_sql_user" "postgres_dbadmin" {
-  count    = var.create_postgres ? 1 : 0
-  name     = "dbadmin"
-  instance = google_sql_database_instance.postgres[0].name
-  password = local.db_password
 }
 
 # 4. Cloud SQL MySQL Infrastructure
@@ -255,14 +235,6 @@ resource "google_sql_database" "mysql_db" {
   instance = google_sql_database_instance.mysql[0].name
 }
 
-resource "google_sql_user" "mysql_dbadmin" {
-  count    = var.create_mysql ? 1 : 0
-  name     = "dbadmin"
-  instance = google_sql_database_instance.mysql[0].name
-  password = local.db_password
-  host     = "%" # Allow from any host (Cloud SQL Proxy / Private IP safe-ish in VPC)
-}
-
 # 5. Cloud SQL SQL Server Infrastructure
 # --------------------------------------
 resource "google_sql_database_instance" "mssql" {
@@ -302,13 +274,6 @@ resource "google_sql_database" "mssql_db" {
   count    = var.create_mssql ? 1 : 0
   name     = "mssql_db"
   instance = google_sql_database_instance.mssql[0].name
-}
-
-resource "google_sql_user" "mssql_dbadmin" {
-  count    = var.create_mssql ? 1 : 0
-  name     = "dbadmin"
-  instance = google_sql_database_instance.mssql[0].name
-  password = local.db_password
 }
 
 # 6. SAP HANA VM (Placeholder)
