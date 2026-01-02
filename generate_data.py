@@ -272,7 +272,14 @@ def patched_create_or_validate_tables(self, inferred_tables):
 
     # EXPLCIT MSSQL Support for PAYLOAD
     if self.engine.dialect.name == "mssql":
-        fix_mssql_schema(self.engine) # Call the new function here
+        print("   🔍 Debug: verifying schema BEFORE internal fix...")
+        verify_table_schema(self.engine, "KNA1")
+        
+        fix_mssql_schema(self.engine) 
+        
+        print("   🔍 Debug: verifying schema AFTER internal fix...")
+        verify_table_schema(self.engine, "KNA1")
+        
         try:
              insp = sqlalchemy.inspect(self.engine)
              for table_name in ["MARA", "KNA1", "VBAK"]:
