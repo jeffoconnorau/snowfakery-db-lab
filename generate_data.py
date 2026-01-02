@@ -134,10 +134,12 @@ def get_engine(db_type):
     elif db_type == "MSSQL":
         connector = get_sql_connector()
         def getconn():
+            # DEBUG: Force sqlserver to prove code update
+            print(f"   🔌 MSSQL: Connecting as 'sqlserver' to '{current_db}'...")
             return connector.connect(
                 MSSQL_CONNECTION_NAME,
                 "pytds",
-                user=current_user,
+                user="sqlserver", # HARDCODED override
                 password=DB_PASSWORD,
                 db=current_db,
                 ip_type=DB_IP_TYPE
