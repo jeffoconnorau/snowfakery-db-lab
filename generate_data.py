@@ -247,6 +247,54 @@ def patched_create_or_validate_tables(self, inferred_tables):
         except Exception as e:
             print(f"   ⚠️ Could not enforce LONGTEXT on MySQL: {e}")
 
+    # Post-validation: Ensure Postgres uses TEXT for PAYLOAD (fix for VARCHAR limit issues)
+    if self.engine.dialect.name == "postgresql":
+        try:
+             insp = sqlalchemy.inspect(self.engine)
+             for table_name in ["MARA", "KNA1", "VBAK"]:
+                db_table_names = insp.get_table_names()
+                actual_table_name = next((t for t in db_table_names if t.upper() == table_name), None)
+                
+                if actual_table_name:
+                    cols = insp.get_columns(actual_table_name)
+                    payload_col = next((c for c in cols if c['name'].upper() == "PAYLOAD"), None)
+                    
+                    if payload_col:
+                        print(f"   🔧 Postgres: Enforcing TEXT for {actual_table_name}.PAYLOAD...")
+                        quoted_table = self.engine.dialect.identifier_preparer.quote(actual_table_name)
+                        quoted_col = self.engine.dialect.identifier_preparer.quote("PAYLOAD")
+                        with self.engine.connect() as conn:
+                            # Postgres syntax: ALTER COLUMN col TYPE type
+                            conn.execute(sqlalchemy.text(f"ALTER TABLE {quoted_table} ALTER COLUMN {quoted_col} TYPE TEXT"))
+                            conn.commit()
+        except Exception as e:
+            print(f"   ⚠️ Could not enforce TEXT on Postgres: {e}")
+
+    # EXPLCIT MSSQL Support for PAYLOAD
+    if self.engine.dialect.name == "mssql":
+        fix_mssql_schema(self.engine) # Call the new function here
+        try:
+             insp = sqlalchemy.inspect(self.engine)
+             for table_name in ["MARA", "KNA1", "VBAK"]:
+                db_table_names = insp.get_table_names()
+                # MSSQL might require schema checks, usually 'dbo'. get_table_names() usually returns simple names.
+                actual_table_name = next((t for t in db_table_names if t.upper() == table_name), None)
+                
+                if actual_table_name:
+                    cols = insp.get_columns(actual_table_name)
+                    payload_col = next((c for c in cols if c['name'].upper() == "PAYLOAD"), None)
+                    
+                    if payload_col:
+                         print(f"   🔧 MSSQL: Enforcing VARCHAR(MAX) for {actual_table_name}.PAYLOAD...")
+                         quoted_table = self.engine.dialect.identifier_preparer.quote(actual_table_name)
+                         quoted_col = self.engine.dialect.identifier_preparer.quote("PAYLOAD")
+                         with self.engine.connect() as conn:
+                             # MSSQL syntax: ALTER TABLE t ALTER COLUMN c TYPE
+                             conn.execute(sqlalchemy.text(f"ALTER TABLE {quoted_table} ALTER COLUMN {quoted_col} VARCHAR(MAX)"))
+                             conn.commit()
+        except Exception as e:
+            print(f"   ⚠️ Could not enforce VARCHAR(MAX) on MSSQL: {e}")
+
 
 
 def fix_mssql_schema(engine):
@@ -306,53 +354,7 @@ def fix_mssql_schema(engine):
     except Exception as e:
         print(f"   ❌ Failed to fix MSSQL schema: {e}")
 
-    # Post-validation: Ensure Postgres uses TEXT for PAYLOAD (fix for VARCHAR limit issues)
-    if self.engine.dialect.name == "postgresql":
-        try:
-             insp = sqlalchemy.inspect(self.engine)
-             for table_name in ["MARA", "KNA1", "VBAK"]:
-                db_table_names = insp.get_table_names()
-                actual_table_name = next((t for t in db_table_names if t.upper() == table_name), None)
-                
-                if actual_table_name:
-                    cols = insp.get_columns(actual_table_name)
-                    payload_col = next((c for c in cols if c['name'].upper() == "PAYLOAD"), None)
-                    
-                    if payload_col:
-                        print(f"   🔧 Postgres: Enforcing TEXT for {actual_table_name}.PAYLOAD...")
-                        quoted_table = self.engine.dialect.identifier_preparer.quote(actual_table_name)
-                        quoted_col = self.engine.dialect.identifier_preparer.quote("PAYLOAD")
-                        with self.engine.connect() as conn:
-                            # Postgres syntax: ALTER COLUMN col TYPE type
-                            conn.execute(sqlalchemy.text(f"ALTER TABLE {quoted_table} ALTER COLUMN {quoted_col} TYPE TEXT"))
-                            conn.commit()
-        except Exception as e:
-            print(f"   ⚠️ Could not enforce TEXT on Postgres: {e}")
 
-    # EXPLCIT MSSQL Support for PAYLOAD
-    if self.engine.dialect.name == "mssql":
-        fix_mssql_schema(self.engine) # Call the new function here
-        try:
-             insp = sqlalchemy.inspect(self.engine)
-             for table_name in ["MARA", "KNA1", "VBAK"]:
-                db_table_names = insp.get_table_names()
-                # MSSQL might require schema checks, usually 'dbo'. get_table_names() usually returns simple names.
-                actual_table_name = next((t for t in db_table_names if t.upper() == table_name), None)
-                
-                if actual_table_name:
-                    cols = insp.get_columns(actual_table_name)
-                    payload_col = next((c for c in cols if c['name'].upper() == "PAYLOAD"), None)
-                    
-                    if payload_col:
-                         print(f"   🔧 MSSQL: Enforcing VARCHAR(MAX) for {actual_table_name}.PAYLOAD...")
-                         quoted_table = self.engine.dialect.identifier_preparer.quote(actual_table_name)
-                         quoted_col = self.engine.dialect.identifier_preparer.quote("PAYLOAD")
-                         with self.engine.connect() as conn:
-                             # MSSQL syntax: ALTER TABLE t ALTER COLUMN c TYPE
-                             conn.execute(sqlalchemy.text(f"ALTER TABLE {quoted_table} ALTER COLUMN {quoted_col} VARCHAR(MAX)"))
-                             conn.commit()
-        except Exception as e:
-            print(f"   ⚠️ Could not enforce VARCHAR(MAX) on MSSQL: {e}")
 
 SqlDbOutputStream.create_or_validate_tables = patched_create_or_validate_tables
 # ----------------------------------
