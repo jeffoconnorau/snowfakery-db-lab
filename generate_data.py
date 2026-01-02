@@ -60,6 +60,8 @@ def get_db_user(db_type):
     
     # Default to specific 'dbadmin' user if available, or fallbacks.
     # User requested 'dbadmin' standard user.
+    if db_type == "MSSQL":
+        return "sqlserver" # Cloud SQL default admin (sysadmin), bypasses mapping issues
     return "dbadmin"
 
 def get_db_name(db_type):
