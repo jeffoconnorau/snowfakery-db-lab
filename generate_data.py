@@ -126,11 +126,17 @@ def get_engine(db_type):
         return sqlalchemy.create_engine("mysql+pymysql://", creator=getconn)
 
     elif db_type == "MSSQL":
-        # For MSSQL, we currently lack a clean Connector solution without ODBC driver
-        # We will skip or fail if requested.
-        # If user has ODBC driver, we could try standard connection?
-        # Leaving as NotImplemented for connector approach for now.
-        return None
+        connector = get_sql_connector()
+        def getconn():
+            return connector.connect(
+                MSSQL_CONNECTION_NAME,
+                "pytds",
+                user=current_user,
+                password=DB_PASSWORD,
+                db=current_db,
+                ip_type=DB_IP_TYPE
+            )
+        return sqlalchemy.create_engine("mssql+pytds://", creator=getconn)
 
     else:
         raise ValueError(f"Unknown DB type for Connector: {db_type}")
@@ -269,9 +275,8 @@ def run_generation(recipe_file, iterations=1, targets=None):
                 port = os.getenv("HANA_PORT", "39015")
                 db_url = f"hana://{DB_USER}:{quote_plus(DB_PASSWORD)}@{host}:{port}"
             elif db_type == "MSSQL":
-                 # Skip for now
-                 print("Skipping MSSQL (requires ODBC driver + Proxy or Connector setup)")
-                 continue
+                 # Use Connector with pytds
+                 db_url = f"connector://{db_type}"
             else:
                 # Use Connector
                 db_url = f"connector://{db_type}"
