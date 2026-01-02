@@ -247,6 +247,53 @@ def patched_create_or_validate_tables(self, inferred_tables):
         except Exception as e:
             print(f"   ⚠️ Could not enforce LONGTEXT on MySQL: {e}")
 
+    def fix_mssql_schema(engine):
+        """
+        Pre-emptively fixes MSSQL schema issues:
+        1. Ensures PSTLZ (Postal Code) is VARCHAR, not BIGINT (Snowfakery inference bug with numeric mixed data).
+        2. Ensures PAYLOAD is VARCHAR(MAX).
+        """
+        try:
+            insp = sqlalchemy.inspect(engine)
+            if not insp.has_table("KNA1"):
+                print("   🛠️ MSSQL: Pre-creating KNA1 to force PSTLZ as VARCHAR...")
+                # We must create it to avoid bad inference.
+                # Minimal schema, Snowfakery will append columns if needed (hopefully) or we assume standard fields.
+                # SAFE BET: Create with fields we know are trouble.
+                with engine.connect() as conn:
+                    conn.execute(sqlalchemy.text("""
+                        CREATE TABLE KNA1 (
+                            id BIGINT IDENTITY(1,1) PRIMARY KEY,
+                            KUNNR BIGINT,
+                            NAME1 NVARCHAR(255),
+                            ORT01 NVARCHAR(255),
+                            PSTLZ NVARCHAR(50), -- FORCE STRING
+                            LAND1 NVARCHAR(255),
+                            TELF1 NVARCHAR(255),
+                            ERDAT DATE,
+                            PAYLOAD VARCHAR(MAX) -- FORCE MAX
+                        )
+                    """))
+                    conn.commit()
+            else:
+                print("   🔧 MSSQL: Checking KNA1.PSTLZ type...")
+                cols = {c['name'].upper(): c for c in insp.get_columns("KNA1")}
+                pstlz = cols.get("PSTLZ")
+                if pstlz and str(pstlz['type']).lower() in ['bigint', 'int', 'numeric']:
+                    print("   ⚠️ Found PSTLZ as INT/BIGINT. Converting to VARCHAR...")
+                    with engine.connect() as conn:
+                        conn.execute(sqlalchemy.text("ALTER TABLE KNA1 ALTER COLUMN PSTLZ NVARCHAR(50)"))
+                        conn.commit()
+                
+                # Also check Payload
+                if cols.get("PAYLOAD"):
+                    with engine.connect() as conn:
+                        conn.execute(sqlalchemy.text("ALTER TABLE KNA1 ALTER COLUMN PAYLOAD VARCHAR(MAX)"))
+                        conn.commit()
+
+        except Exception as e:
+            print(f"   ❌ Failed to fix MSSQL schema: {e}")
+
     # Post-validation: Ensure Postgres uses TEXT for PAYLOAD (fix for VARCHAR limit issues)
     if self.engine.dialect.name == "postgresql":
         try:
@@ -272,6 +319,7 @@ def patched_create_or_validate_tables(self, inferred_tables):
 
     # EXPLCIT MSSQL Support for PAYLOAD
     if self.engine.dialect.name == "mssql":
+        fix_mssql_schema(self.engine) # Call the new function here
         try:
              insp = sqlalchemy.inspect(self.engine)
              for table_name in ["MARA", "KNA1", "VBAK"]:
