@@ -244,10 +244,10 @@ def patched_create_or_validate_tables(self, inferred_tables):
                             # ALTER TABLE t MODIFY col LONGTEXT
                             # MySQL usually is case-insensitive for cols unless strict, but quoting is safe.
                             quoted_col = self.engine.dialect.identifier_preparer.quote("PAYLOAD")
-                            conn.execute(sqlalchemy.text(f"ALTER TABLE {actual_table_name} MODIFY {quoted_col} LONGTEXT"))
-                            conn.commit()
         except Exception as e:
             print(f"   ⚠️ Could not enforce LONGTEXT on MySQL: {e}")
+
+
 
 def fix_mssql_schema(engine):
     """
