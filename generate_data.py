@@ -273,7 +273,8 @@ def patched_create_or_validate_tables(self, inferred_tables):
                             ERDAT DATE,
                             PAYLOAD VARCHAR(MAX) -- FORCE MAX
                         )
-                conn.commit()
+                    """))
+                    conn.commit()
             
             # Re-inspect to get current columns (whether just created or existing)
             # We do this outside the if/else to catch all cases
