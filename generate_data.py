@@ -176,6 +176,25 @@ def patched_from_url(cls, db_url: str, mappings=None):
 
 SqlDbOutputStream.from_url = patched_from_url
 
+# We patch write_row to FORCE string types for critical columns
+# This prevents Snowfakery/SQLAlchemy from inferring "BigInt" for the batch when the first row happens to be numeric.
+_original_write_row = SqlDbOutputStream.write_row
+
+def patched_write_row(self, tablename, row):
+    # Enforce Strings for mixed-type columns
+    if tablename.upper() == "KNA1":
+        for col in ["PSTLZ", "TELF1", "KUNNR", "ORT01", "NAME1", "LAND1"]:
+            if col in row and row[col] is not None:
+                row[col] = str(row[col])
+    
+    if tablename.upper() == "MARA":
+         if "MATNR" in row and row["MATNR"] is not None:
+             row["MATNR"] = str(row["MATNR"])
+
+    return _original_write_row(self, tablename, row)
+
+SqlDbOutputStream.write_row = patched_write_row
+
 # We patch create_or_validate_tables to allow appending to existing tables without error
 _original_create_or_validate_tables = SqlDbOutputStream.create_or_validate_tables
 
