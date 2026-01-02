@@ -7,3 +7,4 @@ sqlalchemy-hana
 cloud-sql-python-connector[pg8000]
 google-cloud-alloydb-connector[pg8000]
 pg8000
+python-tds
