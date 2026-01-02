@@ -10,8 +10,8 @@ from snowfakery.output_streams import SqlDbOutputStream
 from google.cloud.sql.connector import Connector, IPTypes
 from google.cloud.alloydb.connector import Connector as AlloyConnector
 
-# Configure logging to show Snowfakery progress
-logging.basicConfig(level=logging.INFO)
+# Configure logging (default to WARNING to reduce noise, use --verbose for INFO)
+logging.basicConfig(level=logging.WARNING)
 
 # --- Fix SSL Issues (Zscaler/Corporate Proxy context) ---
 # Force Python/OpenSSL to use certifi's bundle if no other bundle is set
@@ -458,6 +458,11 @@ if __name__ == "__main__":
                         help=f"Number of batches (Default: {default_iterations} from DATA_ITERATIONS env var)")
     
     parser.add_argument("--recipe", "-r", default="complete_data.recipe.yml")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging (INFO level)")
     args = parser.parse_args()
+    
+    if args.verbose:
+        logging.getLogger().setLevel(logging.INFO)
+        print("   🔍 Verbose logging enabled.")
     
     run_generation(args.recipe, args.iterations, args.targets)
