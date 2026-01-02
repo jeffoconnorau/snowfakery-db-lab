@@ -56,6 +56,11 @@ def get_db_user(db_type):
     """Returns configured user or smart default based on DB type."""
     env_user = os.getenv("DB_USER")
     if env_user:
+        # Special case: If user is globally set to 'dbadmin' (common in this lab), 
+        # but we are on MSSQL, we prefer 'sqlserver' unless they really meant it.
+        if db_type == "MSSQL" and env_user == "dbadmin":
+            print("   ⚠️ Overriding global DB_USER='dbadmin' with 'sqlserver' for MSSQL compatibility.")
+            return "sqlserver"
         return env_user
     
     # Default to specific 'dbadmin' user if available, or fallbacks.
