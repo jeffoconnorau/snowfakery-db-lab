@@ -144,7 +144,7 @@ def get_engine(db_type):
         try:
             return sqlalchemy.create_engine("mssql+pytds://", creator=getconn)
         except sqlalchemy.exc.NoSuchModuleError:
-             raise ImportError("❌ SQLAlchemy could not load 'mssql+pytds' dialect. Check if 'python-tds' is installed and compatible.")
+             raise ImportError("❌ SQLAlchemy could not load 'mssql+pytds'. Ensure 'sqlalchemy-pytds' is installed: pip install sqlalchemy-pytds")
 
     else:
         raise ValueError(f"Unknown DB type for Connector: {db_type}")
