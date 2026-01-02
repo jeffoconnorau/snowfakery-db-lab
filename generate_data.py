@@ -386,7 +386,7 @@ def verify_table_schema(engine, table_name="KNA1"):
     except Exception as e:
         print(f"   ⚠️ Schema verification failed: {e}")
 
-def run_generation(recipe_file, iterations=1, targets=None, drop_tables=False):
+def run_generation(recipe_file, iterations=1, targets=None):
     if not targets:
         # Default Targets (MSSQL skipped by default in this mode until fixed)
         targets = ["POSTGRES", "ALLOYDB", "MYSQL", "HANA"] 
@@ -414,18 +414,6 @@ def run_generation(recipe_file, iterations=1, targets=None, drop_tables=False):
             if not engine:
                 print(f"   ⚠️ Skipping {db_type} (No Engine)")
                 continue
-
-            # 0. NUCLEAR OPTION: Drop Tables if requested (BEFORE fixing schema)
-            if drop_tables:
-                 print(f"   ☢️ DROP TABLES requested for {db_type}. Dropping known tables...")
-                 with engine.connect() as conn:
-                     for tbl in ["KNA1", "MARA", "VBAK", "VBAP", "BSEG", "BKPF"]: # List known tables
-                         try:
-                             conn.execute(sqlalchemy.text(f"DROP TABLE IF EXISTS {tbl}"))
-                             conn.commit()
-                             print(f"      Deleted {tbl}")
-                         except Exception as e:
-                             print(f"      Could not drop {tbl}: {e}")
 
             # 4. Fix MSSQL Schema (Pre-emptively)
             if "mssql" in db_type.lower():
@@ -493,7 +481,6 @@ if __name__ == "__main__":
                         help=f"Number of batches (Default: {default_iterations} from DATA_ITERATIONS env var)")
     
     parser.add_argument("--recipe", "-r", default="complete_data.recipe.yml")
-    parser.add_argument("--drop-tables", action="store_true", help="Drop tables before starting (Fresh Start)")
     args = parser.parse_args()
     
-    run_generation(args.recipe, args.iterations, args.targets, args.drop_tables)
+    run_generation(args.recipe, args.iterations, args.targets)
