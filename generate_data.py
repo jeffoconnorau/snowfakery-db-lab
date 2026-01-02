@@ -54,19 +54,18 @@ def get_alloy_connector():
 
 def get_db_user(db_type):
     """Returns configured user or smart default based on DB type."""
-    env_user = os.getenv("DB_USER")
-    if env_user:
-        # Special case: If user is globally set to 'dbadmin' (common in this lab), 
-        # but we are on MSSQL, we prefer 'sqlserver' unless they really meant it.
-        if db_type == "MSSQL" and env_user == "dbadmin":
-            print("   ⚠️ Overriding global DB_USER='dbadmin' with 'sqlserver' for MSSQL compatibility.")
+    env_user = os.getenv("DB_USER", "").strip()
+    
+    if db_type == "MSSQL":
+        # Force 'sqlserver' if user is default or 'dbadmin' to avoid permission issues
+        if not env_user or "dbadmin" in env_user.lower():
+            print(f"   ⚠️ Forcing user 'sqlserver' for MSSQL (ignoring '{env_user}')")
             return "sqlserver"
         return env_user
+
+    if env_user:
+        return env_user
     
-    # Default to specific 'dbadmin' user if available, or fallbacks.
-    # User requested 'dbadmin' standard user.
-    if db_type == "MSSQL":
-        return "sqlserver" # Cloud SQL default admin (sysadmin), bypasses mapping issues
     return "dbadmin"
 
 def get_db_name(db_type):
