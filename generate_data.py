@@ -183,7 +183,9 @@ def patched_create_or_validate_tables(self, inferred_tables):
     try:
         _original_create_or_validate_tables(self, inferred_tables)
     except DataGenError as e:
-        if "Table already exists" in str(e) and os.getenv("DB_APPEND", "false").lower() == "true":
+        err_msg = str(e).lower()
+        # Catch "Table already exists" (Postgres/MySQL) OR "There is already an object named" (MSSQL)
+        if ("table already exists" in err_msg or "already an object named" in err_msg) and os.getenv("DB_APPEND", "false").lower() == "true":
             print(f"   ⚠️ Ignoring table existence check (DB_APPEND=true).")
             # Auto-Migrate: Check for missing PAYLOAD column and add it if missing
             try:
@@ -386,9 +388,9 @@ def run_generation(recipe_file, iterations=1, targets=None, drop_tables=False):
     print(f"Iterations: {iterations}, Targets: {targets}")
     
     for db_type in targets:
+        print(f"\n--- Target: {db_type} ---")
         try:
-            print(f"\n--- Target: {db_type} ---")
-            
+            # Determine DB URL and get engine
             if db_type == "HANA":
                 # HANA uses standard URL (SSH Tunnel)
                 host = os.getenv("HANA_HOST", "localhost")
@@ -400,6 +402,27 @@ def run_generation(recipe_file, iterations=1, targets=None, drop_tables=False):
             else:
                 # Use Connector
                 db_url = f"connector://{db_type}"
+
+            engine = get_engine(db_type)
+            if not engine:
+                print(f"   ⚠️ Skipping {db_type} (No Engine)")
+                continue
+
+            # 0. NUCLEAR OPTION: Drop Tables if requested (BEFORE fixing schema)
+            if drop_tables:
+                 print(f"   ☢️ DROP TABLES requested for {db_type}. Dropping known tables...")
+                 with engine.connect() as conn:
+                     for tbl in ["KNA1", "MARA", "VBAK", "VBAP", "BSEG", "BKPF"]: # List known tables
+                         try:
+                             conn.execute(sqlalchemy.text(f"DROP TABLE IF EXISTS {tbl}"))
+                             conn.commit()
+                             print(f"      Deleted {tbl}")
+                         except Exception as e:
+                             print(f"      Could not drop {tbl}: {e}")
+
+            # 4. Fix MSSQL Schema (Pre-emptively)
+            if "mssql" in db_type.lower():
+                 fix_mssql_schema(engine)
 
             # Check for Append Mode
             db_append = os.getenv("DB_APPEND", "false").lower() == "true"
@@ -424,19 +447,7 @@ def run_generation(recipe_file, iterations=1, targets=None, drop_tables=False):
                     # Output: Write to a temp file to avoid corruption during run
                     gen_kwargs["generate_continuation_file"] = temp_continuation_file
                 
-                # Check for Drop Tables request (NUCLEAR OPTION)
-                if drop_tables and i == 0: # Only drop on first batch
-                     print(f"   ☢️ DROP TABLES requested for {db_type}. Dropping known tables...")
-                     engine = get_engine(db_type)
-                     if engine:
-                         with engine.connect() as conn:
-                             for tbl in ["KNA1", "MARA", "VBAK", "VBAP", "BSEG", "BKPF"]: # List known tables
-                                 try:
-                                     conn.execute(sqlalchemy.text(f"DROP TABLE IF EXISTS {tbl}"))
-                                     conn.commit()
-                                     print(f"      Deleted {tbl}")
-                                 except Exception as e:
-                                     print(f"      Could not drop {tbl}: {e}")
+                # Removed the old drop_tables block from here
 
                 try:
                     generate_data(
