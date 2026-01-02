@@ -137,11 +137,14 @@ def get_engine(db_type):
                 ip_type=DB_IP_TYPE
             )
         try:
-            return sqlalchemy.create_engine("mssql+pytds://", creator=getconn)
+            import pytds # explicit check
         except ImportError:
-            raise ImportError("❌ MSSQL driver 'python-tds' is missing. Please run: pip install python-tds")
+            raise ImportError("❌ Python package 'python-tds' is NOT installed. Please run: pip install python-tds")
+
+        try:
+            return sqlalchemy.create_engine("mssql+pytds://", creator=getconn)
         except sqlalchemy.exc.NoSuchModuleError:
-             raise ImportError("❌ SQLAlchemy cannot find 'mssql+pytds'. Ensure 'python-tds' is installed: pip install python-tds")
+             raise ImportError("❌ SQLAlchemy could not load 'mssql+pytds' dialect. Check if 'python-tds' is installed and compatible.")
 
     else:
         raise ValueError(f"Unknown DB type for Connector: {db_type}")
