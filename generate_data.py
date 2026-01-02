@@ -312,7 +312,7 @@ def fix_mssql_schema(engine):
                 BEGIN
                     CREATE TABLE KNA1 (
                         id BIGINT IDENTITY(1,1) PRIMARY KEY,
-                        KUNNR BIGINT,
+                        KUNNR NVARCHAR(255),     -- Changed to String for flexibility
                         NAME1 NVARCHAR(255),
                         ORT01 NVARCHAR(255),
                         PSTLZ NVARCHAR(50),      -- Critical: Force String
@@ -333,6 +333,9 @@ def fix_mssql_schema(engine):
                         ALTER TABLE KNA1 ALTER COLUMN PAYLOAD VARCHAR(MAX);
 
                     -- 2. Critical Text Fields
+                    IF COL_LENGTH('KNA1', 'KUNNR') IS NULL ALTER TABLE KNA1 ADD KUNNR NVARCHAR(255);
+                    ELSE ALTER TABLE KNA1 ALTER COLUMN KUNNR NVARCHAR(255);
+
                     IF COL_LENGTH('KNA1', 'TELF1') IS NULL ALTER TABLE KNA1 ADD TELF1 NVARCHAR(255);
                     ELSE ALTER TABLE KNA1 ALTER COLUMN TELF1 NVARCHAR(255);
 
