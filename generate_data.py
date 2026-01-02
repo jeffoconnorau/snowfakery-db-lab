@@ -282,33 +282,30 @@ def patched_create_or_validate_tables(self, inferred_tables):
             print(f"   👀 MSSQL: KNA1 Columns found: {list(cols.keys())}")
 
             # 1. PAYLOAD (Ensure VARCHAR(MAX))
-            if cols.get("PAYLOAD"):
-                 with engine.connect() as conn:
-                    conn.execute(sqlalchemy.text("ALTER TABLE KNA1 ALTER COLUMN PAYLOAD VARCHAR(MAX)"))
-                    conn.commit()
-            else:
-                 print("   ➕ MSSQL: Adding KNA1.PAYLOAD as VARCHAR(MAX)...")
-                 with engine.connect() as conn:
-                    conn.execute(sqlalchemy.text("ALTER TABLE KNA1 ADD PAYLOAD VARCHAR(MAX)"))
-                    conn.commit()
+            # Blindly fix PAYLOAD using T-SQL logic
+            with engine.connect() as conn:
+                conn.execute(sqlalchemy.text("""
+                    IF COL_LENGTH('KNA1', 'PAYLOAD') IS NULL
+                        ALTER TABLE KNA1 ADD PAYLOAD VARCHAR(MAX);
+                    ELSE
+                        ALTER TABLE KNA1 ALTER COLUMN PAYLOAD VARCHAR(MAX);
+                """))
+                conn.commit()
 
             # 2. Critical Text Fields (TELF1, PSTLZ, etc.)
-            for col_name, max_len in [("TELF1", 255), ("ORT01", 255), ("NAME1", 255), ("LAND1", 255), ("PSTLZ", 50)]:
-                col_def = cols.get(col_name)
-                
-                if not col_def:
-                    print(f"   ➕ MSSQL: Adding missing column KNA1.{col_name} as NVARCHAR({max_len})...")
-                    with engine.connect() as conn:
-                        conn.execute(sqlalchemy.text(f"ALTER TABLE KNA1 ADD {col_name} NVARCHAR({max_len})"))
-                        conn.commit()
-                else:
-                    col_type_str = str(col_def['type']).lower()
-                    # If it looks numeric, force it to string
-                    if any(x in col_type_str for x in ['int', 'numeric', 'decimal', 'float', 'real', 'bigint']):
-                        print(f"   ⚠️ Found KNA1.{col_name} ({col_type_str}) as NUMERIC. Converting to NVARCHAR({max_len})...")
-                        with engine.connect() as conn:
-                            conn.execute(sqlalchemy.text(f"ALTER TABLE KNA1 ALTER COLUMN {col_name} NVARCHAR({max_len})"))
-                            conn.commit()
+            # We force them to NVARCHAR(255) to be safe.
+            critical_cols = ["TELF1", "ORT01", "NAME1", "LAND1", "PSTLZ"]
+            with engine.connect() as conn:
+                for col_name in critical_cols:
+                    print(f"   🔨 MSSQL: Forcing KNA1.{col_name} to NVARCHAR(255)...")
+                    # T-SQL to check and add/alter
+                    conn.execute(sqlalchemy.text(f"""
+                        IF COL_LENGTH('KNA1', '{col_name}') IS NULL
+                            ALTER TABLE KNA1 ADD {col_name} NVARCHAR(255);
+                        ELSE
+                            ALTER TABLE KNA1 ALTER COLUMN {col_name} NVARCHAR(255);
+                    """))
+                    conn.commit()
 
         except Exception as e:
             print(f"   ❌ Failed to fix MSSQL schema: {e}")
