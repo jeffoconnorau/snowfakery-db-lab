@@ -272,17 +272,10 @@ def patched_create_or_validate_tables(self, inferred_tables):
 
     # EXPLCIT MSSQL Support for PAYLOAD
     if self.engine.dialect.name == "mssql":
-        print("   🔍 Debug: verifying schema BEFORE internal fix...")
-        verify_table_schema(self.engine, "KNA1")
-        
-        fix_mssql_schema(self.engine) 
-        
-        print("   🔍 Debug: verifying schema AFTER internal fix...")
-        verify_table_schema(self.engine, "KNA1")
-        
         try:
              insp = sqlalchemy.inspect(self.engine)
              for table_name in ["MARA", "KNA1", "VBAK"]:
+
                 db_table_names = insp.get_table_names()
                 # MSSQL might require schema checks, usually 'dbo'. get_table_names() usually returns simple names.
                 actual_table_name = next((t for t in db_table_names if t.upper() == table_name), None)
@@ -301,52 +294,6 @@ def patched_create_or_validate_tables(self, inferred_tables):
                              conn.commit()
         except Exception as e:
             print(f"   ⚠️ Could not enforce VARCHAR(MAX) on MSSQL: {e}")
-
-
-
-def fix_mssql_schema(engine):
-    """
-    Fixes MSSQL schema issues AFTER table creation:
-    1. Ensures PSTLZ (Postal Code) is NVARCHAR.
-    2. Ensures PAYLOAD is VARCHAR(MAX).
-    3. Ensures Critical Text Fields are NVARCHAR.
-    """
-    try:
-        with engine.connect() as conn:
-            conn.execute(sqlalchemy.text("""
-                -- Check if KNA1 exists (Snowfakery should have created it)
-                IF OBJECT_ID('KNA1', 'U') IS NOT NULL
-                BEGIN
-                    -- 1. Payload
-                    IF COL_LENGTH('KNA1', 'PAYLOAD') IS NULL
-                        ALTER TABLE KNA1 ADD PAYLOAD VARCHAR(MAX);
-                    ELSE
-                        ALTER TABLE KNA1 ALTER COLUMN PAYLOAD VARCHAR(MAX);
-
-                    -- 2. Critical Text Fields
-                    IF COL_LENGTH('KNA1', 'KUNNR') IS NULL ALTER TABLE KNA1 ADD KUNNR NVARCHAR(255);
-                    ELSE ALTER TABLE KNA1 ALTER COLUMN KUNNR NVARCHAR(255);
-
-                    IF COL_LENGTH('KNA1', 'TELF1') IS NULL ALTER TABLE KNA1 ADD TELF1 NVARCHAR(255);
-                    ELSE ALTER TABLE KNA1 ALTER COLUMN TELF1 NVARCHAR(255);
-
-                    IF COL_LENGTH('KNA1', 'ORT01') IS NULL ALTER TABLE KNA1 ADD ORT01 NVARCHAR(255);
-                    ELSE ALTER TABLE KNA1 ALTER COLUMN ORT01 NVARCHAR(255);
-
-                    IF COL_LENGTH('KNA1', 'NAME1') IS NULL ALTER TABLE KNA1 ADD NAME1 NVARCHAR(255);
-                    ELSE ALTER TABLE KNA1 ALTER COLUMN NAME1 NVARCHAR(255);
-
-                    IF COL_LENGTH('KNA1', 'LAND1') IS NULL ALTER TABLE KNA1 ADD LAND1 NVARCHAR(255);
-                    ELSE ALTER TABLE KNA1 ALTER COLUMN LAND1 NVARCHAR(255);
-
-                    IF COL_LENGTH('KNA1', 'PSTLZ') IS NULL ALTER TABLE KNA1 ADD PSTLZ NVARCHAR(50);
-                    ELSE ALTER TABLE KNA1 ALTER COLUMN PSTLZ NVARCHAR(50);
-                END
-            """))
-            conn.commit()
-
-    except Exception as e:
-        print(f"   ❌ Failed to fix MSSQL schema: {e}")
 
 
 
@@ -377,9 +324,35 @@ def verify_table_schema(engine, table_name="KNA1"):
     except Exception as e:
         print(f"   ⚠️ Schema verification failed: {e}")
 
+def ensure_mssql_schema(engine):
+    """
+    NUCLEAR OPTION: Drops and recreates KNA1 to strictly enforce schema.
+    This prevents Snowfakery's type inference from creating BIGINT columns for strings.
+    """
+    print("   ☢️ Enforcing MSSQL Schema (Drop & Recreate KNA1 matches)...")
+    try:
+        with engine.begin() as conn: # Use begin() for transaction
+            conn.execute(sqlalchemy.text("IF OBJECT_ID('KNA1', 'U') IS NOT NULL DROP TABLE KNA1"))
+            conn.execute(sqlalchemy.text("""
+                CREATE TABLE KNA1 (
+                    id BIGINT IDENTITY(1,1) PRIMARY KEY,
+                    KUNNR NVARCHAR(255),
+                    NAME1 NVARCHAR(255),
+                    ORT01 NVARCHAR(255),
+                    PSTLZ NVARCHAR(50),      -- Force String
+                    LAND1 NVARCHAR(255),
+                    TELF1 NVARCHAR(255),     -- Force String
+                    ERDAT DATE,
+                    PAYLOAD VARCHAR(MAX)     -- Force Max
+                )
+            """))
+        print("   ✅ Recreated KNA1 with strict NVARCHAR schema.")
+    except Exception as e:
+        print(f"   ❌ Failed to ensure MSSQL schema: {e}")
+
 def run_generation(recipe_file, iterations=1, targets=None):
     if not targets:
-        # Default Targets (MSSQL skipped by default in this mode until fixed)
+        # Default Targets
         targets = ["POSTGRES", "ALLOYDB", "MYSQL", "HANA"] 
     
     print(f"Starting generation using recipe: {recipe_file}")
@@ -406,9 +379,9 @@ def run_generation(recipe_file, iterations=1, targets=None):
                 print(f"   ⚠️ Skipping {db_type} (No Engine)")
                 continue
 
-            # 4. Fix MSSQL Schema (moved to patched_create_or_validate_tables)
-            # We rely on Snowfakery to create tables now, and then fix schema on the fly.
-
+            # PRE-CREATION: Enforce Schema for MSSQL
+            if "mssql" in db_type.lower():
+                ensure_mssql_schema(engine)
 
             # Check for Append Mode
             db_append = os.getenv("DB_APPEND", "false").lower() == "true"
