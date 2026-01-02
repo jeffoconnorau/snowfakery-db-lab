@@ -299,33 +299,17 @@ def patched_create_or_validate_tables(self, inferred_tables):
 
 def fix_mssql_schema(engine):
     """
-    Pre-emptively fixes MSSQL schema issues:
-    1. Ensures PSTLZ (Postal Code) is VARCHAR, not BIGINT (Snowfakery inference bug with numeric mixed data).
+    Fixes MSSQL schema issues AFTER table creation:
+    1. Ensures PSTLZ (Postal Code) is NVARCHAR.
     2. Ensures PAYLOAD is VARCHAR(MAX).
+    3. Ensures Critical Text Fields are NVARCHAR.
     """
     try:
-        # 1. Ensure Table Exists with Correct Schema
-        # If table doesn't exist, we create it with strict types to prevent bad inference.
         with engine.connect() as conn:
             conn.execute(sqlalchemy.text("""
-                IF OBJECT_ID('KNA1', 'U') IS NULL
+                -- Check if KNA1 exists (Snowfakery should have created it)
+                IF OBJECT_ID('KNA1', 'U') IS NOT NULL
                 BEGIN
-                    CREATE TABLE KNA1 (
-                        id BIGINT IDENTITY(1,1) PRIMARY KEY,
-                        KUNNR NVARCHAR(255),     -- Changed to String for flexibility
-                        NAME1 NVARCHAR(255),
-                        ORT01 NVARCHAR(255),
-                        PSTLZ NVARCHAR(50),      -- Critical: Force String
-                        LAND1 NVARCHAR(255),
-                        TELF1 NVARCHAR(255),     -- Critical: Force String
-                        ERDAT DATE,
-                        PAYLOAD VARCHAR(MAX)     -- Critical: Force Max
-                    );
-                END
-                ELSE
-                BEGIN
-                    -- Table exists, potentially bad schema. Force fix.
-                    
                     -- 1. Payload
                     IF COL_LENGTH('KNA1', 'PAYLOAD') IS NULL
                         ALTER TABLE KNA1 ADD PAYLOAD VARCHAR(MAX);
@@ -415,15 +399,9 @@ def run_generation(recipe_file, iterations=1, targets=None):
                 print(f"   ⚠️ Skipping {db_type} (No Engine)")
                 continue
 
-            # 4. Fix MSSQL Schema (Pre-emptively)
-            if "mssql" in db_type.lower():
-                 print("   🧐 Checking schema BEFORE fix...")
-                 verify_table_schema(engine, "KNA1")
-                 
-                 fix_mssql_schema(engine)
-                 
-                 print("   🧐 Checking schema AFTER fix...")
-                 verify_table_schema(engine, "KNA1")
+            # 4. Fix MSSQL Schema (moved to patched_create_or_validate_tables)
+            # We rely on Snowfakery to create tables now, and then fix schema on the fly.
+
 
             # Check for Append Mode
             db_append = os.getenv("DB_APPEND", "false").lower() == "true"
