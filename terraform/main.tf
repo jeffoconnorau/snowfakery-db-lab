@@ -130,6 +130,7 @@ resource "google_alloydb_instance" "default" {
   cluster       = google_alloydb_cluster.default[0].name
   instance_id   = "alloydb-lab-instance"
   instance_type = "PRIMARY"
+  availability_type = "ZONAL"
 
   machine_config {
     cpu_count = 2
