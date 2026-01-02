@@ -249,84 +249,62 @@ def patched_create_or_validate_tables(self, inferred_tables):
         except Exception as e:
             print(f"   ⚠️ Could not enforce LONGTEXT on MySQL: {e}")
 
-    def fix_mssql_schema(engine):
-        """
-        Pre-emptively fixes MSSQL schema issues:
-        1. Ensures PSTLZ (Postal Code) is VARCHAR, not BIGINT (Snowfakery inference bug with numeric mixed data).
-        2. Ensures PAYLOAD is VARCHAR(MAX).
-        """
-        try:
-            insp = sqlalchemy.inspect(engine)
-            if not insp.has_table("KNA1"):
-                print("   🛠️ MSSQL: Pre-creating KNA1 to force PSTLZ as VARCHAR...")
-                # We must create it to avoid bad inference.
-                # Minimal schema, Snowfakery will append columns if needed (hopefully) or we assume standard fields.
-                # SAFE BET: Create with fields we know are trouble.
-                with engine.connect() as conn:
-                    conn.execute(sqlalchemy.text("""
-                        CREATE TABLE KNA1 (
-                            id BIGINT IDENTITY(1,1) PRIMARY KEY,
-                            KUNNR BIGINT,
-                            NAME1 NVARCHAR(255),
-                            ORT01 NVARCHAR(255),
-                            PSTLZ NVARCHAR(50), -- FORCE STRING
-                            LAND1 NVARCHAR(255),
-                            TELF1 NVARCHAR(255),
-                            ERDAT DATE,
-                            PAYLOAD VARCHAR(MAX) -- FORCE MAX
-                        )
-                    """))
-                    conn.commit()
-            
-            # 1. Ensure Table Exists with Correct Schema
-            # If table doesn't exist, we create it with strict types to prevent bad inference.
-            with engine.connect() as conn:
-                conn.execute(sqlalchemy.text("""
-                    IF OBJECT_ID('KNA1', 'U') IS NULL
-                    BEGIN
-                        CREATE TABLE KNA1 (
-                            id BIGINT IDENTITY(1,1) PRIMARY KEY,
-                            KUNNR BIGINT,
-                            NAME1 NVARCHAR(255),
-                            ORT01 NVARCHAR(255),
-                            PSTLZ NVARCHAR(50),      -- Critical: Force String
-                            LAND1 NVARCHAR(255),
-                            TELF1 NVARCHAR(255),     -- Critical: Force String
-                            ERDAT DATE,
-                            PAYLOAD VARCHAR(MAX)     -- Critical: Force Max
-                        );
-                    END
+def fix_mssql_schema(engine):
+    """
+    Pre-emptively fixes MSSQL schema issues:
+    1. Ensures PSTLZ (Postal Code) is VARCHAR, not BIGINT (Snowfakery inference bug with numeric mixed data).
+    2. Ensures PAYLOAD is VARCHAR(MAX).
+    """
+    try:
+        # 1. Ensure Table Exists with Correct Schema
+        # If table doesn't exist, we create it with strict types to prevent bad inference.
+        with engine.connect() as conn:
+            conn.execute(sqlalchemy.text("""
+                IF OBJECT_ID('KNA1', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE KNA1 (
+                        id BIGINT IDENTITY(1,1) PRIMARY KEY,
+                        KUNNR BIGINT,
+                        NAME1 NVARCHAR(255),
+                        ORT01 NVARCHAR(255),
+                        PSTLZ NVARCHAR(50),      -- Critical: Force String
+                        LAND1 NVARCHAR(255),
+                        TELF1 NVARCHAR(255),     -- Critical: Force String
+                        ERDAT DATE,
+                        PAYLOAD VARCHAR(MAX)     -- Critical: Force Max
+                    );
+                END
+                ELSE
+                BEGIN
+                    -- Table exists, potentially bad schema. Force fix.
+                    
+                    -- 1. Payload
+                    IF COL_LENGTH('KNA1', 'PAYLOAD') IS NULL
+                        ALTER TABLE KNA1 ADD PAYLOAD VARCHAR(MAX);
                     ELSE
-                    BEGIN
-                        -- Table exists, potentially bad schema. Force fix.
-                        
-                        -- 1. Payload
-                        IF COL_LENGTH('KNA1', 'PAYLOAD') IS NULL
-                            ALTER TABLE KNA1 ADD PAYLOAD VARCHAR(MAX);
-                        ELSE
-                            ALTER TABLE KNA1 ALTER COLUMN PAYLOAD VARCHAR(MAX);
+                        ALTER TABLE KNA1 ALTER COLUMN PAYLOAD VARCHAR(MAX);
 
-                        -- 2. Critical Text Fields
-                        IF COL_LENGTH('KNA1', 'TELF1') IS NULL ALTER TABLE KNA1 ADD TELF1 NVARCHAR(255);
-                        ELSE ALTER TABLE KNA1 ALTER COLUMN TELF1 NVARCHAR(255);
+                    -- 2. Critical Text Fields
+                    IF COL_LENGTH('KNA1', 'TELF1') IS NULL ALTER TABLE KNA1 ADD TELF1 NVARCHAR(255);
+                    ELSE ALTER TABLE KNA1 ALTER COLUMN TELF1 NVARCHAR(255);
 
-                        IF COL_LENGTH('KNA1', 'ORT01') IS NULL ALTER TABLE KNA1 ADD ORT01 NVARCHAR(255);
-                        ELSE ALTER TABLE KNA1 ALTER COLUMN ORT01 NVARCHAR(255);
+                    IF COL_LENGTH('KNA1', 'ORT01') IS NULL ALTER TABLE KNA1 ADD ORT01 NVARCHAR(255);
+                    ELSE ALTER TABLE KNA1 ALTER COLUMN ORT01 NVARCHAR(255);
 
-                        IF COL_LENGTH('KNA1', 'NAME1') IS NULL ALTER TABLE KNA1 ADD NAME1 NVARCHAR(255);
-                        ELSE ALTER TABLE KNA1 ALTER COLUMN NAME1 NVARCHAR(255);
+                    IF COL_LENGTH('KNA1', 'NAME1') IS NULL ALTER TABLE KNA1 ADD NAME1 NVARCHAR(255);
+                    ELSE ALTER TABLE KNA1 ALTER COLUMN NAME1 NVARCHAR(255);
 
-                        IF COL_LENGTH('KNA1', 'LAND1') IS NULL ALTER TABLE KNA1 ADD LAND1 NVARCHAR(255);
-                        ELSE ALTER TABLE KNA1 ALTER COLUMN LAND1 NVARCHAR(255);
+                    IF COL_LENGTH('KNA1', 'LAND1') IS NULL ALTER TABLE KNA1 ADD LAND1 NVARCHAR(255);
+                    ELSE ALTER TABLE KNA1 ALTER COLUMN LAND1 NVARCHAR(255);
 
-                        IF COL_LENGTH('KNA1', 'PSTLZ') IS NULL ALTER TABLE KNA1 ADD PSTLZ NVARCHAR(50);
-                        ELSE ALTER TABLE KNA1 ALTER COLUMN PSTLZ NVARCHAR(50);
-                    END
-                """))
-                conn.commit()
+                    IF COL_LENGTH('KNA1', 'PSTLZ') IS NULL ALTER TABLE KNA1 ADD PSTLZ NVARCHAR(50);
+                    ELSE ALTER TABLE KNA1 ALTER COLUMN PSTLZ NVARCHAR(50);
+                END
+            """))
+            conn.commit()
 
-        except Exception as e:
-            print(f"   ❌ Failed to fix MSSQL schema: {e}")
+    except Exception as e:
+        print(f"   ❌ Failed to fix MSSQL schema: {e}")
 
     # Post-validation: Ensure Postgres uses TEXT for PAYLOAD (fix for VARCHAR limit issues)
     if self.engine.dialect.name == "postgresql":
