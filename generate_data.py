@@ -276,36 +276,52 @@ def patched_create_or_validate_tables(self, inferred_tables):
                     """))
                     conn.commit()
             
-            # Re-inspect and handle columns
-            insp = sqlalchemy.inspect(engine)
-            cols = {c['name'].upper(): c for c in insp.get_columns("KNA1")}
-            print(f"   👀 MSSQL: KNA1 Columns found: {list(cols.keys())}")
-
-            # 1. PAYLOAD (Ensure VARCHAR(MAX))
-            # Blindly fix PAYLOAD using T-SQL logic
+            # 1. Ensure Table Exists with Correct Schema
+            # If table doesn't exist, we create it with strict types to prevent bad inference.
             with engine.connect() as conn:
                 conn.execute(sqlalchemy.text("""
-                    IF COL_LENGTH('KNA1', 'PAYLOAD') IS NULL
-                        ALTER TABLE KNA1 ADD PAYLOAD VARCHAR(MAX);
+                    IF OBJECT_ID('KNA1', 'U') IS NULL
+                    BEGIN
+                        CREATE TABLE KNA1 (
+                            id BIGINT IDENTITY(1,1) PRIMARY KEY,
+                            KUNNR BIGINT,
+                            NAME1 NVARCHAR(255),
+                            ORT01 NVARCHAR(255),
+                            PSTLZ NVARCHAR(50),      -- Critical: Force String
+                            LAND1 NVARCHAR(255),
+                            TELF1 NVARCHAR(255),     -- Critical: Force String
+                            ERDAT DATE,
+                            PAYLOAD VARCHAR(MAX)     -- Critical: Force Max
+                        );
+                    END
                     ELSE
-                        ALTER TABLE KNA1 ALTER COLUMN PAYLOAD VARCHAR(MAX);
+                    BEGIN
+                        -- Table exists, potentially bad schema. Force fix.
+                        
+                        -- 1. Payload
+                        IF COL_LENGTH('KNA1', 'PAYLOAD') IS NULL
+                            ALTER TABLE KNA1 ADD PAYLOAD VARCHAR(MAX);
+                        ELSE
+                            ALTER TABLE KNA1 ALTER COLUMN PAYLOAD VARCHAR(MAX);
+
+                        -- 2. Critical Text Fields
+                        IF COL_LENGTH('KNA1', 'TELF1') IS NULL ALTER TABLE KNA1 ADD TELF1 NVARCHAR(255);
+                        ELSE ALTER TABLE KNA1 ALTER COLUMN TELF1 NVARCHAR(255);
+
+                        IF COL_LENGTH('KNA1', 'ORT01') IS NULL ALTER TABLE KNA1 ADD ORT01 NVARCHAR(255);
+                        ELSE ALTER TABLE KNA1 ALTER COLUMN ORT01 NVARCHAR(255);
+
+                        IF COL_LENGTH('KNA1', 'NAME1') IS NULL ALTER TABLE KNA1 ADD NAME1 NVARCHAR(255);
+                        ELSE ALTER TABLE KNA1 ALTER COLUMN NAME1 NVARCHAR(255);
+
+                        IF COL_LENGTH('KNA1', 'LAND1') IS NULL ALTER TABLE KNA1 ADD LAND1 NVARCHAR(255);
+                        ELSE ALTER TABLE KNA1 ALTER COLUMN LAND1 NVARCHAR(255);
+
+                        IF COL_LENGTH('KNA1', 'PSTLZ') IS NULL ALTER TABLE KNA1 ADD PSTLZ NVARCHAR(50);
+                        ELSE ALTER TABLE KNA1 ALTER COLUMN PSTLZ NVARCHAR(50);
+                    END
                 """))
                 conn.commit()
-
-            # 2. Critical Text Fields (TELF1, PSTLZ, etc.)
-            # We force them to NVARCHAR(255) to be safe.
-            critical_cols = ["TELF1", "ORT01", "NAME1", "LAND1", "PSTLZ"]
-            with engine.connect() as conn:
-                for col_name in critical_cols:
-                    print(f"   🔨 MSSQL: Forcing KNA1.{col_name} to NVARCHAR(255)...")
-                    # T-SQL to check and add/alter
-                    conn.execute(sqlalchemy.text(f"""
-                        IF COL_LENGTH('KNA1', '{col_name}') IS NULL
-                            ALTER TABLE KNA1 ADD {col_name} NVARCHAR(255);
-                        ELSE
-                            ALTER TABLE KNA1 ALTER COLUMN {col_name} NVARCHAR(255);
-                    """))
-                    conn.commit()
 
         except Exception as e:
             print(f"   ❌ Failed to fix MSSQL schema: {e}")
