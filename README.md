@@ -85,7 +85,6 @@ python generate_data.py --targets POSTGRES MYSQL
 python generate_data.py --targets HANA --iterations 5
 
 # Use a specific recipe
-# Use a specific recipe
 python generate_data.py --recipe erp_data.recipe.yml
 
 # Verbose Logging (Debug Mode)
