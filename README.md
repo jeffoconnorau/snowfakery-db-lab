@@ -31,8 +31,6 @@ terraform apply \
   -var="create_mysql=false" \
   -var="create_mssql=false" \
   -var="create_hana_vm=false"
-```bash
-  -var="create_hana_vm=false"
 ```
 *Note: If you destroy a database, remember to exclude it from `generate_data.py --targets`.*
 
